@@ -1,0 +1,143 @@
+---
+- name: Install NFS utilities on all nodes
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Install nfs-utils package
+      ansible.builtin.dnf:
+        name: nfs-utils
+        state: present
+
+- name: Open NFS ports
+  hosts: nfs_storage
+  become: true
+  tasks:
+    - name: Open NFS ports in the public zone
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop:
+        - nfs
+        - rpc-bind
+        - mountd
+      when: ansible_facts.services['firewalld.service'] is defined and
+        ansible_facts.services['firewalld.service'].state == 'running'
+
+- name: Setup NFS export on Casper
+  hosts: nfs_storage
+  become: true
+  vars:
+    nfs_exports:
+      # mount on all swarm
+      - path: "/mnt/vault/git" #CHANGE THIS!!!
+        allowed_ips:
+          - "192.168.10.102"
+          - "192.168.10.103"
+        options: "rw,sync,no_subtree_check,no_root_squash"
+      # mount on all swarm
+      - path: "/mnt/vault/data"
+        allowed_ips:
+          - "192.168.10.102"
+          - "192.168.10.103"
+        options: "rw,sync,no_subtree_check,no_root_squash"
+      # mount on all swarm
+      - path: "/mnt/media"
+        allowed_ips:
+          - "192.168.10.102"
+          - "192.168.10.103"
+        options: "rw,sync,no_subtree_check,no_root_squash"
+      # mount only on network machine
+      - path: "/mnt/vault"
+        allowed_ips:
+          - "192.168.10.100"
+        options: "ro,sync,no_subtree_check,no_root_squash"
+
+  tasks:
+    - name: Configure /etc/exports
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        line: >-
+          {{ item.path }}
+          {% for ip in item.allowed_ips %}
+          {{ ip }}({{ item.options }}){% if not loop.last %} {% endif %}
+          {% endfor %}
+        regexp: "^\\s*{{ item.path | regex_escape }}"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ nfs_exports }}"
+      notify: Export NFS Share
+
+    - name: Enable and start NFS server service
+      ansible.builtin.systemd:
+        name: nfs-server
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Export NFS Share
+      ansible.builtin.command: exportfs -rav
+
+- name: Mount swarm-needed folders
+  hosts: compute
+  become: true
+  vars:
+    nfs_server_ip: "{{ hostvars[groups['storage'][0]]['ansible_host'] | default(groups['storage'][0]) }}"
+    nfs_mounts:
+      - src_path: "/mnt/vault/git"
+        mount_point: "/mnt/vault/git"
+        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
+      - src_path: "/mnt/vault/data"
+        mount_point: "/mnt/vault/data"
+        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
+      - src_path: "/mnt/media"
+        mount_point: "/mnt/media"
+        options: "nfsvers=4.2,hard,timeo=600,retrans=5,rsize=1048576,wsize=1048576,_netdev"
+
+  tasks:
+    - name: Create mount point
+      ansible.builtin.file:
+        path: "{{ item.mount_point }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ nfs_mounts }}"
+
+    - name: Mount NFS share in fstab
+      ansible.posix.mount:
+        path: "{{ item.mount_point }}"
+        src: "{{ nfs_server_ip }}:{{ item.src_path }}"
+        fstype: nfs
+        opts: "{{ item.options }}"
+        state: mounted
+      loop: "{{ nfs_mounts }}"
+
+- name: Mount backup folders
+  hosts: magi.rdfilippo.homelab
+  become: true
+  vars:
+    nfs_server_ip: "{{ hostvars[groups['storage'][0]]['ansible_host'] | default(groups['storage'][0]) }}"
+    nfs_mounts:
+      - src_path: "/mnt/vault"
+        mount_point: "/mnt/casper-data"
+        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
+
+  tasks:
+    - name: Create mount point
+      ansible.builtin.file:
+        path: "{{ item.mount_point }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ nfs_mounts }}"
+
+    - name: Mount NFS share in fstab
+      ansible.posix.mount:
+        path: "{{ item.mount_point }}"
+        src: "{{ nfs_server_ip }}:{{ item.src_path }}"
+        fstype: nfs
+        opts: "{{ item.options }}"
+        state: mounted
+      loop: "{{ nfs_mounts }}"
