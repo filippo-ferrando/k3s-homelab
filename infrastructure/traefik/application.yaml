@@ -5,13 +5,6 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  source:
-    chart: traefik
-    repoURL: https://traefik.github.io/charts
-    targetRevision: 41.2.0
-    helm:
-      valueFiles:
-        - $values/infrastructure/traefik/values.yaml
   sources:
     - chart: traefik
       repoURL: https://traefik.github.io/charts
