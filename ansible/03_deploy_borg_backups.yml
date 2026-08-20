@@ -1,0 +1,45 @@
+---
+- name: Deploy Backup jobs
+  hosts: magi.rdfilippo.homelab
+  become: true
+  vars:
+    jobs:
+      - script_path: "./scripts/borg_backup_personal.sh"
+        remote_path: "/usr/local/bin/borg-backup.sh"
+        cron_schedule: "0 2 */2 * *"
+        cron_user: "magi"
+        name: "personal data"
+      #- script_path: "./scripts/borg_backup_db.sh"
+      #  remote_path: "/usr/local/bin/db-backup.sh"
+      #  cron_schedule: "0 4 */3 * *"
+      #  cron_user: "magi"
+      #  name: "db data"
+  tasks:
+    - name: Ensure target directories exist
+      ansible.builtin.file:
+        path: "{{ item.remote_path | dirname }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ jobs }}"
+
+    - name: Push custom script from laptop to target machine
+      ansible.builtin.copy:
+        src: "{{ item.script_path }}"
+        dest: "{{ item.remote_path }}"
+        owner: "{{ item.cron_user }}"
+        group: "{{ item.cron_user }}"
+        mode: "0755"
+      loop: "{{ jobs }}"
+
+    - name: Schedule crontab job
+      ansible.builtin.cron:
+        name: "{{ item.name }}"
+        user: "{{ item.cron_user }}"
+        minute: "{{ item.cron_schedule.split()[0] }}"
+        hour: "{{ item.cron_schedule.split()[1] }}"
+        day: "{{ item.cron_schedule.split()[2] }}"
+        month: "{{ item.cron_schedule.split()[3] }}"
+        weekday: "{{ item.cron_schedule.split()[4] }}"
+        job: "{{ item.remote_path }}"
+        state: present
+      loop: "{{ jobs }}"

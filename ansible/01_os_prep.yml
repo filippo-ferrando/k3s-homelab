@@ -1,0 +1,28 @@
+---
+- name: Prepare AlmaLinux 10 for K3s and Longhorn
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Install required packages (NFS client and iSCSI for Longhorn)
+      ansible.builtin.dnf:
+        name:
+          - nfs-utils
+          - iscsi-initiator-utils
+          - curl
+          - tar
+        state: present
+
+    - name: Enable and start iSCSI daemon (Required by Longhorn)
+      ansible.builtin.systemd:
+        name: iscsid
+        state: started
+        enabled: true
+
+    - name: Configure Firewalld for K3s internal traffic
+      ansible.posix.firewalld:
+        zone: trusted
+        source: "192.168.10.0/24"
+        permanent: true
+        immediate: true
+        state: enabled
+      when: ansible_facts.services['firewalld.service'] is defined
