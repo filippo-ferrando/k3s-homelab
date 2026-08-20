@@ -1,0 +1,30 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: homelab-db
+  namespace: database
+spec:
+  instances: 3
+
+  # The operator will ensure pods are spread across balthazar, caelium, and casper
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+
+  # 1. Storage Configuration (Uses Longhorn automatically)
+  storage:
+    size: 20Gi # Adjust based on your needs
+
+  # 2. Network & Connections
+  postgresql:
+    parameters:
+      max_connections: "300"
+      shared_buffers: "512MB"
+
+  # 3. Bootstrapping App Databases
+  bootstrap:
+    initdb:
+      database: app_db
+      owner: app_user
+      # The operator will automatically generate a highly secure password
+      # and store it in a Secret named 'homelab-db-app'
