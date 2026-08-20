@@ -10,7 +10,7 @@ kubectl create secret generic cloudflare-api-token-secret \
 kubeseal \
   --controller-namespace kube-system \
   --controller-name sealed-secrets \
-  --format yaml > sealed-cloudflare-token.yaml
+  --format yaml > infrastructure/traefik/sealed-cloudflare-token.yaml
 ```
 
 ```bash
@@ -21,5 +21,22 @@ kubectl create secret generic tunnel-token \
 kubeseal \
   --controller-namespace kube-system \
   --controller-name sealed-secrets \
-  --format yaml > sealed-tunnel-token.yaml
+  --format yaml > infrastructure/cloudflared/sealed-tunnel-token.yaml
+```
+
+## longhorn auth middlewate secret creation
+
+```bash
+htpasswd -nb admin "YourStrongPasswordHere"
+```
+
+```bash
+kubectl create secret generic longhorn-auth-secret \
+  --namespace longhorn-system \
+  --from-literal=users="admin:\$apr1\$mK3...\$v8xQ5a6gS8xL.1" \
+  --dry-run=client -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > infrastructure/manifests/sealed-longhorn-auth.yaml
 ```
