@@ -119,7 +119,7 @@
   hosts: magi.rdfilippo.homelab
   become: true
   vars:
-    nfs_server_ip: "{{ hostvars[groups['storage'][0]]['ansible_host'] | default(groups['storage'][0]) }}"
+    nfs_server_ip: "{{ hostvars[groups['nfs_storage'][0]]['ansible_host'] | default(groups['nfs_storage'][0]) }}"
     nfs_mounts:
       - src_path: "/mnt/vault"
         mount_point: "/mnt/casper-data"
