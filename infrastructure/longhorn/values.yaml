@@ -1,0 +1,8 @@
+ingress:
+  enabled: false
+
+defaultSettings:
+  # 3 replicas ensures maximum HA across balthazar, caelium, and casper
+  defaultReplicaCount: 3
+  # Automatically delete completed backup jobs to keep the cluster clean
+  backupbopsCleanupWaitInterval: 1440
