@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pushgateway
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`pushgateway.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: pushgateway-prometheus-pushgateway
+          port: 9091

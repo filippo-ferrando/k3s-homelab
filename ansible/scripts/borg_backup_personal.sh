@@ -1,5 +1,5 @@
 #!/bin/bash
-PUSHGATEWAY_URL="https://pushgateway.rdfilippo.mywire.org"
+PUSHGATEWAY_URL="https://pushgateway.interal.fferrando.cc"
 JOB_NAME="personal_files"
 INSTANCE_NAME=$(hostname)
 START_TIME=$(date +%s)

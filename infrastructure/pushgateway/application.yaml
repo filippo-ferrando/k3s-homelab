@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pushgateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" # Installs AFTER Prometheus CRDs are ready
+spec:
+  project: default
+  sources:
+    - chart: prometheus-pushgateway
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: 3.8.0
+    - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

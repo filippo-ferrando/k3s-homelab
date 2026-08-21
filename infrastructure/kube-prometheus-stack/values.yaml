@@ -1,0 +1,28 @@
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn-single-replica
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+grafana:
+  adminPassword: "admin" # You will change this in the Grafana UI on first login
+  persistence:
+    enabled: true
+    storageClassName: longhorn-single-replica
+    size: 5Gi
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn-single-replica
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
