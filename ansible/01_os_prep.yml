@@ -10,7 +10,32 @@
           - iscsi-initiator-utils
           - curl
           - tar
+          - cockpit
+          - cockpit-machines
+          - cockpit-storaged
+          - libvirt
         state: present
+
+    # RHEL 10 link
+    - name: Add the Tailscale repository
+      ansible.builtin.yum_repository:
+        name: tailscale
+        description: Tailscale stable repo
+        baseurl: https://pkgs.tailscale.com/stable/rhel/10/
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://pkgs.tailscale.com/stable/rhel/10/tailscale.asc
+
+    - name: Install Tailscale
+      ansible.builtin.dnf:
+        name: tailscale
+        state: present
+
+    - name: Enable and start tailscaled service
+      ansible.builtin.systemd:
+        name: tailscaled
+        enabled: true
+        state: started
 
     - name: Enable and start iSCSI daemon (Required by Longhorn)
       ansible.builtin.systemd:

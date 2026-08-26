@@ -82,38 +82,38 @@
     - name: Export NFS Share
       ansible.builtin.command: exportfs -rav
 
-- name: Mount swarm-needed folders
-  hosts: compute
-  become: true
-  vars:
-    nfs_server_ip: "{{ hostvars[groups['nfs_storage'][0]]['ansible_host'] | default(groups['nfs_storage'][0]) }}"
-    nfs_mounts:
-      - src_path: "/mnt/vault/git"
-        mount_point: "/mnt/vault/git"
-        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
-      - src_path: "/mnt/vault/data"
-        mount_point: "/mnt/vault/data"
-        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
-      - src_path: "/mnt/media"
-        mount_point: "/mnt/media"
-        options: "nfsvers=4.2,hard,timeo=600,retrans=5,rsize=1048576,wsize=1048576,_netdev"
-
-  tasks:
-    - name: Create mount point
-      ansible.builtin.file:
-        path: "{{ item.mount_point }}"
-        state: directory
-        mode: "0755"
-      loop: "{{ nfs_mounts }}"
-
-    - name: Mount NFS share in fstab
-      ansible.posix.mount:
-        path: "{{ item.mount_point }}"
-        src: "{{ nfs_server_ip }}:{{ item.src_path }}"
-        fstype: nfs
-        opts: "{{ item.options }}"
-        state: mounted
-      loop: "{{ nfs_mounts }}"
+#- name: Mount swarm-needed folders
+#  hosts: compute
+#  become: true
+#  vars:
+#    nfs_server_ip: "{{ hostvars[groups['nfs_storage'][0]]['ansible_host'] | default(groups['nfs_storage'][0]) }}"
+#    nfs_mounts:
+#      - src_path: "/mnt/vault/git"
+#        mount_point: "/mnt/vault/git"
+#        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
+#      - src_path: "/mnt/vault/data"
+#        mount_point: "/mnt/vault/data"
+#        options: "nfsvers=4.2,hard,timeo=600,retrans=5,_netdev"
+#      - src_path: "/mnt/media"
+#        mount_point: "/mnt/media"
+#        options: "nfsvers=4.2,hard,timeo=600,retrans=5,rsize=1048576,wsize=1048576,_netdev"
+#
+#  tasks:
+#    - name: Create mount point
+#      ansible.builtin.file:
+#        path: "{{ item.mount_point }}"
+#        state: directory
+#        mode: "0755"
+#      loop: "{{ nfs_mounts }}"
+#
+#    - name: Mount NFS share in fstab
+#      ansible.posix.mount:
+#        path: "{{ item.mount_point }}"
+#        src: "{{ nfs_server_ip }}:{{ item.src_path }}"
+#        fstype: nfs
+#        opts: "{{ item.options }}"
+#        state: mounted
+#      loop: "{{ nfs_mounts }}"
 
 - name: Mount backup folders
   hosts: magi.rdfilippo.homelab
