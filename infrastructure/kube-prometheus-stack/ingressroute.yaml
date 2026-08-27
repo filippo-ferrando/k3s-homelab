@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: grafana-ui
   namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   entryPoints:
     - websecure
