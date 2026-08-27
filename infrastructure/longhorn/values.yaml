@@ -4,3 +4,6 @@ ingress:
 defaultSettings:
   defaultReplicaCount: 3
   backupbopsCleanupWaitInterval: 1440
+
+helmPreUpgradeCheckerJob:
+  enabled: false
