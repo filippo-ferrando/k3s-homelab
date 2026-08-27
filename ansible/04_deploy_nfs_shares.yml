@@ -12,6 +12,9 @@
   hosts: nfs_storage
   become: true
   tasks:
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
     - name: Open NFS ports in the public zone
       ansible.posix.firewalld:
         zone: public
@@ -23,8 +26,9 @@
         - nfs
         - rpc-bind
         - mountd
-      when: ansible_facts.services['firewalld.service'] is defined and
-        ansible_facts.services['firewalld.service'].state == 'running'
+      when:
+        - "'firewalld.service' in ansible_facts.services"
+        - ansible_facts.services['firewalld.service'].state == 'running'
 
 - name: Setup NFS export on Casper
   hosts: nfs_storage
@@ -34,20 +38,17 @@
       # mount on all swarm
       - path: "/mnt/vault/git" #CHANGE THIS!!!
         allowed_ips:
-          - "192.168.10.102"
-          - "192.168.10.103"
+          - "192.168.10.0/24"
         options: "rw,sync,no_subtree_check,no_root_squash"
       # mount on all swarm
       - path: "/mnt/vault/data"
         allowed_ips:
-          - "192.168.10.102"
-          - "192.168.10.103"
+          - "192.168.10.0/24"
         options: "rw,sync,no_subtree_check,no_root_squash"
       # mount on all swarm
       - path: "/mnt/media"
         allowed_ips:
-          - "192.168.10.102"
-          - "192.168.10.103"
+          - "192.168.10.0/24"
         options: "rw,sync,no_subtree_check,no_root_squash"
       # mount only on network machine
       - path: "/mnt/vault"
@@ -116,7 +117,7 @@
 #      loop: "{{ nfs_mounts }}"
 
 - name: Mount backup folders
-  hosts: magi.rdfilippo.homelab
+  hosts: magi.fferrando.homelab
   become: true
   vars:
     nfs_server_ip: "{{ hostvars[groups['nfs_storage'][0]]['ansible_host'] | default(groups['nfs_storage'][0]) }}"

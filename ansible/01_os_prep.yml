@@ -3,9 +3,16 @@
   hosts: k3s_cluster
   become: true
   tasks:
-    - name: Install required packages (NFS client and iSCSI for Longhorn)
+    - name: Full system update
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
+    - name: Install required packages
       ansible.builtin.dnf:
         name:
+          - container-selinux
+          - kernel-modules-extra
           - nfs-utils
           - iscsi-initiator-utils
           - curl
@@ -14,40 +21,159 @@
           - cockpit-machines
           - cockpit-storaged
           - libvirt
+          - zram-generator
         state: present
+      register: dnf_install
 
-    # RHEL 10 link
-    - name: Add the Tailscale repository
-      ansible.builtin.yum_repository:
-        name: tailscale
-        description: Tailscale stable repo
-        baseurl: https://pkgs.tailscale.com/stable/rhel/10/
-        enabled: true
-        gpgcheck: true
-        gpgkey: https://pkgs.tailscale.com/stable/rhel/10/tailscale.asc
+    - name: Configure SELinux booleans for K3s and Longhorn
+      ansible.posix.seboolean:
+        name: "{{ item }}"
+        state: true
+        persistent: true
+      loop:
+        - container_use_devices
+        - container_connect_any
+
+    - name: Load required networking and nftables compatibility kernel modules
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+
+    - name: Persist kernel modules across reboots
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k3s.conf
+        content: |
+          br_netfilter
+          overlay
+        mode: "0644"
+
+    - name: Configure sysctl parameters for K3s networking
+      ansible.posix.sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: true
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+
+    - name: Configure zram device
+      ansible.builtin.copy:
+        dest: /etc/systemd/zram-generator.conf
+        content: |
+          [zram0]
+          zram-size = ram / 2
+          compression-algorithm = zstd
+        mode: "0644"
+      notify: Reload systemd and start zram
+
+    - name: Add Tailscale repository
+      ansible.builtin.get_url:
+        url: https://pkgs.tailscale.com/stable/rhel/10/tailscale.repo
+        dest: /etc/yum.repos.d/tailscale.repo
+        mode: "0644"
 
     - name: Install Tailscale
       ansible.builtin.dnf:
         name: tailscale
         state: present
 
-    - name: Enable and start tailscaled service
-      ansible.builtin.systemd:
+    - name: Enable and start tailscaled
+      ansible.builtin.systemd_service:
         name: tailscaled
-        enabled: true
         state: started
+        enabled: true
 
     - name: Enable and start iSCSI daemon (Required by Longhorn)
-      ansible.builtin.systemd:
+      ansible.builtin.systemd_service:
         name: iscsid
         state: started
         enabled: true
 
-    - name: Configure Firewalld for K3s internal traffic
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Configure Firewalld trusted sources (Pods, Services, LAN)
       ansible.posix.firewalld:
         zone: trusted
-        source: "192.168.10.0/24"
+        source: "{{ item }}"
         permanent: true
         immediate: true
         state: enabled
-      when: ansible_facts.services['firewalld.service'] is defined
+      loop:
+        - "10.42.0.0/16"
+        - "10.43.0.0/16"
+        - "192.168.10.0/24"
+      when:
+        - "'firewalld.service' in ansible_facts.services"
+        - ansible_facts.services['firewalld.service'].state == 'running'
+
+    - name: Enable Firewalld masquerading for pod routing
+      ansible.posix.firewalld:
+        masquerade: true
+        permanent: true
+        immediate: true
+        state: enabled
+      when:
+        - "'firewalld.service' in ansible_facts.services"
+        - ansible_facts.services['firewalld.service'].state == 'running'
+
+    - name: Allow K3s ports in Firewalld
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop:
+        - "6443/tcp"
+        - "10250/tcp"
+        - "8472/udp"
+        - "2379-2380/tcp"
+      when:
+        - "'firewalld.service' in ansible_facts.services"
+        - ansible_facts.services['firewalld.service'].state == 'running'
+
+    - name: Enable Tailscale SSH
+      ansible.builtin.command:
+        cmd: tailscale set --ssh=true
+      register: tailscale_ssh
+      changed_when: "'No changes' not in tailscale_ssh.stdout"
+      failed_when: false
+
+    - name: Set local OS user as Tailscale operator
+      ansible.builtin.command:
+        cmd: "tailscale set --operator={{ ansible_user }}"
+      register: tailscale_op
+      changed_when: "'No changes' not in tailscale_op.stdout"
+      failed_when: false
+
+    - name: Set tailscale to not manage firewall
+      ansible.builtin.command:
+        cmd: "tailscale set --netfilter-mode=off"
+      register: tailscale_nf
+      changed_when: "'No changes' not in tailscale_nf.stdout"
+      failed_when: false
+
+    - name: Add tailscale0 interface to trusted zone in Firewalld
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: tailscale0
+        permanent: true
+        immediate: true
+        state: enabled
+      when:
+        - "'firewalld.service' in ansible_facts.services"
+        - ansible_facts.services['firewalld.service'].state == 'running'
+      failed_when: false
+
+  handlers:
+    - name: Reload systemd and start zram
+      ansible.builtin.systemd_service:
+        name: systemd-zram-setup@zram0
+        state: restarted
+        daemon_reload: true

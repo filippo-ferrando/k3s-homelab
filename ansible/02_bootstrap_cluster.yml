@@ -5,7 +5,15 @@
   tasks:
     - name: Install K3s (Cluster Init)
       ansible.builtin.shell: |
-        curl -sfL https://get.k3s.io | sh -s - server --cluster-init --disable traefik {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+        curl -sfL https://get.k3s.io | sh -s - server \
+          --cluster-init \
+          --selinux \
+          --prefer-bundled-bin \
+          --flannel-iface={{ ansible_default_ipv4.interface }} \
+          --node-ip={{ ansible_host }} \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
       args:
         creates: /etc/rancher/k3s/k3s.yaml
 
@@ -20,21 +28,35 @@
 
 - name: Join Remaining K3s Servers
   hosts: k3s_servers[1:]
+  serial: 1
   become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
   tasks:
     - name: Join K3s cluster as Server
       ansible.builtin.shell: |
-        curl -sfL https://get.k3s.io | K3S_TOKEN={{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }} sh -s - server --server https://{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] }}:6443 --disable traefik {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }}" sh -s - server \
+          --server "https://{{ k3s_primary_ip }}:6443" \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
       args:
         creates: /etc/rancher/k3s/k3s.yaml
 
 - name: Join K3s Agents
   hosts: k3s_agents
   become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
   tasks:
     - name: Join K3s cluster as Agent
       ansible.builtin.shell: |
-        curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }} sh -
+        curl -sfL https://get.k3s.io | K3S_URL="https://{{ k3s_primary_ip }}:6443" K3S_TOKEN="{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }}" sh -s - agent \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables
       args:
         creates: /etc/rancher/k3s/k3s-agent.env
 
@@ -42,13 +64,20 @@
   hosts: k3s_servers[0]
   become: true
   tasks:
+    - name: Wait for K3s API server to become ready
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6443
+        delay: 5
+        timeout: 60
+
     - name: Create Argo CD namespace
-      ansible.builtin.command: k3s kubectl create namespace argocd
+      ansible.builtin.command: /usr/local/bin/k3s kubectl create namespace argocd
       register: create_ns
       failed_when: "create_ns.rc != 0 and 'AlreadyExists' not in create_ns.stderr"
       changed_when: "create_ns.rc == 0"
 
     - name: Apply Argo CD manifests
-      ansible.builtin.command: k3s kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      ansible.builtin.command: /usr/local/bin/k3s kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
       register: apply_argo
       changed_when: "'created' in apply_argo.stdout or 'configured' in apply_argo.stdout"
