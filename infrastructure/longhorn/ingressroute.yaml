@@ -3,6 +3,8 @@ kind: Middleware
 metadata:
   name: longhorn-auth
   namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   basicAuth:
     secret: longhorn-auth-secret
