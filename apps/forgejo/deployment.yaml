@@ -44,7 +44,7 @@ spec:
             - name: FORGEJO__database__PASSWD
               valueFrom:
                 secretKeyRef:
-                  name: homelab-db-app
+                  name: forgejo-db
                   key: password
           resources:
             limits:

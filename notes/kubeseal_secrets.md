@@ -40,3 +40,10 @@ kubeseal \
   --controller-name sealed-secrets \
   --format yaml > infrastructure/manifests/sealed-longhorn-auth.yaml
 ```
+
+forgejo db password secret creation
+
+```bash
+kubectl -n forgejo create secret generic forgejo-db \
+        --from-literal=password="$(kubectl -n database get secret homelab-db-app -o jsonpath='{.data.password}' | base64 -d)"
+```
