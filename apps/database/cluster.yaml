@@ -15,8 +15,8 @@ spec:
 
   # 1. Storage Configuration (Uses Longhorn automatically)
   storage:
-    size: 20Gi # Adjust based on your needs
-    storageClassName: longhorn-single-replica
+    size: 15Gi # Adjust based on your needs
+    storageClass: longhorn-single-replica
 
   # 2. Network & Connections
   postgresql:
