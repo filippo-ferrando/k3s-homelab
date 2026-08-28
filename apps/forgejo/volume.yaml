@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: forgejo-data-nfs
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: forgejo-nfs
+  mountOptions:
+    - vers=4
+    - proto=tcp
+  nfs:
+    server: 192.168.10.101
+    path: /mnt/vault/git
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forgejo-data
+  namespace: forgejo
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: forgejo-nfs
+  resources:
+    requests:
+      storage: 2Ti
