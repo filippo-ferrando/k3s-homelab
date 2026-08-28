@@ -32,8 +32,6 @@ spec:
       services:
         - name: forgejo
           port: 3000
-  tls:
-    secretName: forgejo-external-tls
 
 ---
 # 3. Git SSH TCP Passthrough (Port 2222 on Traefik)
