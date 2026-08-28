@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pushgateway-internal-tls
+  namespace: monitoring
+spec:
+  secretName: pushgateway-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - pushgateway.internal.fferrando.cc
