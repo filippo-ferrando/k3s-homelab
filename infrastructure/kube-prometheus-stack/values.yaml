@@ -19,6 +19,10 @@ prometheus-node-exporter:
   containerSecurityContext:
     privileged: true
 
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$
+
 grafana:
   adminPassword: "admin" # You will change this in the Grafana UI on first login
   persistence:
