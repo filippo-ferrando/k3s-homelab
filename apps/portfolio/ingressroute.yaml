@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: portfolio
+  namespace: portfolio
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`fferrando.cc`)
+      kind: Rule
+      services:
+        - name: portfolio
+          port: 80
