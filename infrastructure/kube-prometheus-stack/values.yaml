@@ -16,6 +16,9 @@ prometheus-node-exporter:
     runAsNonRoot: false
     runAsUser: 0
 
+  containerSecurityContext:
+    privileged: true
+
 grafana:
   adminPassword: "admin" # You will change this in the Grafana UI on first login
   persistence:
