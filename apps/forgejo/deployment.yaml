@@ -58,7 +58,5 @@ spec:
               mountPath: /data
       volumes:
         - name: data
-          nfs:
-            server: 192.168.10.101
-            path: /mnt/vault/git
-            readOnly: false
+          persistentVolumeClaim:
+            claimName: forgejo-data
