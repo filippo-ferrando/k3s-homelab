@@ -1,33 +1,46 @@
 deployment:
   kind: DaemonSet
 
+api:
+  dashboard: true
+
 ports:
   web:
     port: 8000
-    expose: true
+    expose:
+      default: true
     exposedPort: 80
     redirectTo:
       port: websecure
+
   websecure:
     port: 8443
-    expose: true
+    expose:
+      default: true
     exposedPort: 443
     http3:
       enabled: true
+
   ssh:
     port: 2222
-    expose: true
+    expose:
+      default: true
     exposedPort: 2222
+
   cf-public:
     port: 9443
-    expose: true
+    expose:
+      default: true
     exposedPort: 9443
 
 ingressRoute:
   dashboard:
     enabled: true
     matchRule: Host(`traefik.internal.fferrando.cc`)
-    entryPoints: ["websecure"]
+    entryPoints:
+      - websecure
+    tls:
+      secretName: traefik-internal-tls
 
 providers:
   kubernetesCRD:
