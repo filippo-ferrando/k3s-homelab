@@ -11,13 +11,16 @@ prometheus:
 
 prometheus-node-exporter:
   securityContext:
-    runAsUser: 0
+    fsGroup: 0
     runAsGroup: 0
     runAsNonRoot: false
-    fsGroup: 0
+    runAsUser: 0
 
-  containerSecurityContext:
-    readOnlyRootFilesystem: true
+  hostProcFsMount:
+    enabled: false
+
+  extraArgs:
+    - --path.procfs=/host/root/proc
 
 grafana:
   adminPassword: "admin" # You will change this in the Grafana UI on first login
