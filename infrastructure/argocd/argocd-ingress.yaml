@@ -25,3 +25,5 @@ spec:
       services:
         - name: argocd-server
           port: 80
+  tls:
+    secretName: argocd-internal-tls
