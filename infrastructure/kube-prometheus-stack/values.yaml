@@ -14,6 +14,10 @@ prometheus-node-exporter:
     runAsUser: 0
     runAsGroup: 0
     runAsNonRoot: false
+    fsGroup: 0
+
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
 
 grafana:
   adminPassword: "admin" # You will change this in the Grafana UI on first login
