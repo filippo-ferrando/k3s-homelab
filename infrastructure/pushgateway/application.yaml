@@ -11,6 +11,9 @@ spec:
     - chart: prometheus-pushgateway
       repoURL: https://prometheus-community.github.io/helm-charts
       targetRevision: 3.8.0
+      helm:
+        valueFiles:
+          - $values/infrastructure/pushgateway/values.yaml
     - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
       targetRevision: HEAD
       ref: values

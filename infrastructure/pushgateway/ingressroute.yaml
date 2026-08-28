@@ -13,4 +13,4 @@ spec:
         - name: pushgateway-prometheus-pushgateway
           port: 9091
   tls:
-    secretName: longhorn-internal-tls
+    secretName: pushgateway-internal-tls
