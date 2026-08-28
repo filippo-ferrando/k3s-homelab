@@ -35,6 +35,12 @@ ports:
       default: true
     exposedPort: 9443
 
+  metrics:
+    port: 9100
+    expose:
+      default: false
+    exposedPort: 9100
+
 ingressRoute:
   dashboard:
     enabled: true
@@ -48,3 +54,19 @@ providers:
   kubernetesCRD:
     enabled: true
     allowCrossNamespace: true
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+
+    service:
+      enabled: true
+
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
