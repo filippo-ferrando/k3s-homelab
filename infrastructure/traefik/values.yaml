@@ -4,14 +4,16 @@ deployment:
 api:
   dashboard: true
 
+additionalArguments:
+  - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+  - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
 ports:
   web:
     port: 8000
     expose:
       default: true
     exposedPort: 80
-    redirectTo:
-      port: websecure
 
   websecure:
     port: 8443
