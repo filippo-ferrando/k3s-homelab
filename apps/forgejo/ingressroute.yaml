@@ -1,0 +1,52 @@
+# 1. Internal HTTP Access (OPNsense / Local Network)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: forgejo-internal
+  namespace: forgejo
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`git.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: forgejo
+          port: 3000
+  tls:
+    secretName: forgejo-internal-tls
+
+---
+# 2. Public HTTP Access (Cloudflare Zero Trust Tunnel)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: forgejo-public
+  namespace: forgejo
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`git.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: forgejo
+          port: 3000
+  tls:
+    secretName: forgejo-external-tls
+
+---
+# 3. Git SSH TCP Passthrough (Port 2222 on Traefik)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: forgejo-ssh
+  namespace: forgejo
+spec:
+  entryPoints:
+    - ssh
+  routes:
+    - match: HostSNI(`*`)
+      services:
+        - name: forgejo
+          port: 22

@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: forgejo-internal-tls
+  namespace: forgejo
+spec:
+  secretName: forgejo-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - forgejo.internal.fferrando.cc

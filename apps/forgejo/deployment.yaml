@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forgejo
+  namespace: forgejo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: forgejo
+  template:
+    metadata:
+      labels:
+        app: forgejo
+    spec:
+      containers:
+        - name: forgejo
+          image: codeberg.org/forgejo/forgejo:16
+          ports:
+            - containerPort: 3000
+              name: http
+            - containerPort: 22
+              name: ssh
+          env:
+            - name: USER_UID
+              value: "1000"
+            - name: USER_GID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Rome"
+            - name: FORGEJO__repository__ROOT
+              value: "/data/git/repositories"
+            - name: FORGEJO__server__APP_DATA_PATH
+              value: "/data/gitea"
+            # Database Configuration (CloudNativePG HA Cluster)
+            - name: FORGEJO__database__DB_TYPE
+              value: "postgres"
+            - name: FORGEJO__database__HOST
+              value: "homelab-db-rw.database.svc.cluster.local:5432"
+            - name: FORGEJO__database__NAME
+              value: "forgejo"
+            - name: FORGEJO__database__USER
+              value: "app_user"
+            - name: FORGEJO__database__PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: homelab-db-app
+                  key: password
+          resources:
+            limits:
+              memory: 3Gi
+              cpu: "3.0"
+            requests:
+              memory: 512Mi
+              cpu: "250m"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          nfs:
+            server: 192.168.10.101
+            path: /mnt/vault/git
+            readOnly: false
