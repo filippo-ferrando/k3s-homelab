@@ -7,4 +7,3 @@ defaultSettings:
 
 preUpgradeChecker:
   jobEnabled: false
-  upgradeVersionCheck: false
