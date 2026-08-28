@@ -8,19 +8,17 @@ metadata:
 spec:
   project: default
 
-  source:
-    chart: longhorn
-    repoURL: https://charts.longhorn.io
-    targetRevision: 1.6.0
+  sources:
+    - repoURL: https://charts.longhorn.io
+      targetRevision: 1.12.1
+      chart: longhorn
+      helm:
+        valueFiles:
+          - $values/infrastructure/longhorn/values.yaml
 
-    helm:
-      values: |
-        preUpgradeChecker:
-          jobEnabled: false
-          upgradeVersionCheck: false
-
-        defaultSettings:
-          defaultDataPath: /var/lib/longhorn
+    - repoURL: https://github.com/filippo-ferrando/k3s-homelab.git
+      targetRevision: HEAD
+      ref: values
 
   destination:
     server: "https://kubernetes.default.svc"
