@@ -7,10 +7,14 @@ metadata:
     argocd.argoproj.io/sync-wave: "-2"
 spec:
   project: default
+
   sources:
     - chart: traefik
       repoURL: https://traefik.github.io/charts
       targetRevision: 41.2.0
+      helm:
+        valueFiles:
+          - $values/infrastructure/traefik/values.yaml
     - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
       targetRevision: HEAD
       ref: values
