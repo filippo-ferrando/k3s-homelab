@@ -20,6 +20,10 @@ spec:
       targetRevision: HEAD
       ref: values
 
+    - repoURL: https://github.com/filippo-ferrando/k3s-homelab.git
+      targetRevision: HEAD
+      path: infrastructure/longhorn/resources
+
   destination:
     server: "https://kubernetes.default.svc"
     namespace: longhorn-system
