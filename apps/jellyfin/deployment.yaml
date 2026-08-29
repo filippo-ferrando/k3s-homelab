@@ -36,6 +36,14 @@ spec:
             - name: POSTGRES_PASSWORD
               value: jellyfin
 
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: "2.0"
+            requests:
+              memory: 512Mi
+              cpu: "250m"
+
           volumeMounts:
             - name: config
               mountPath: /config
