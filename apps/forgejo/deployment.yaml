@@ -40,12 +40,9 @@ spec:
             - name: FORGEJO__database__NAME
               value: "forgejo"
             - name: FORGEJO__database__USER
-              value: "app_user"
+              value: "forgejo"
             - name: FORGEJO__database__PASSWD
-              valueFrom:
-                secretKeyRef:
-                  name: forgejo-db
-                  key: password
+              value: "forgejo"
           resources:
             limits:
               memory: 3Gi
