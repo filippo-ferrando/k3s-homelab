@@ -37,7 +37,7 @@ spec:
             - name: CMD_URL_ADDPORT
               value: "false"
             - name: CMD_PROTOCOL_USESSL
-              value: "true"
+              value: "false"
             - name: CMD_DB_DIALECT
               value: "postgres"
             - name: CMD_DB_HOST
