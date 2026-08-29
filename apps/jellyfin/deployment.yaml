@@ -38,16 +38,17 @@ spec:
 
           volumeMounts:
             - name: config
-              persistentVolumeClaim:
-                claimName: jellyfin-config
-
+              mountPath: /config
             - name: cache
               mountPath: /cache
-
             - name: media
-              persistentVolumeClaim:
-                claimName: jellyfin-nfs
-
+              mountPath: /media
       volumes:
         - name: cache
           emptyDir: {}
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyfin-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: jellyfin-nfs
