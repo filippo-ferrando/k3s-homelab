@@ -57,7 +57,7 @@ spec:
             - name: CMD_DEFAULT_PERMISSION
               value: "private"
             - name: CMD_ALLOW_EMAIL_REGISTER
-              value: "true"
+              value: "false"
             - name: CMD_ALLOW_GRAVATAR
               value: "true"
           volumeMounts:
