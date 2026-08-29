@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressRoute
+metadata:
+  name: hedgedoc
+  namespace: hedgedoc
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`doc.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: hedgedoc
+          port: 3000
