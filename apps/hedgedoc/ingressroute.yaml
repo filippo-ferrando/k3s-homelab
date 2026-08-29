@@ -1,4 +1,14 @@
 apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hedgedoc-headers
+  namespace: hedgedoc
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+---
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: hedgedoc
@@ -9,6 +19,8 @@ spec:
   routes:
     - match: Host(`doc.fferrando.cc`)
       kind: Rule
+      middlewares:
+        - hedgedoc-headers
       services:
         - name: hedgedoc
           port: 3000
