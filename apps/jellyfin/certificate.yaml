@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jellyfin-internal-tls
+  namespace: jellyfin
+spec:
+  secretName: jellyfin-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - jellyfin.internal.fferrando.cc

@@ -1,0 +1,32 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jellyfin-internal
+  namespace: jellyfin
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`jellyfin.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: jellyfin
+          port: 8096
+  tls:
+    secretName: jellyfin-internal-tls
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jellyfin-public
+  namespace: jellyfin
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`jellyfin.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: jellyfin
+          port: 8096

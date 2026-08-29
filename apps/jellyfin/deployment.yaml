@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      containers:
+        - name: jellyfin
+          image: ghcr.io/jpvenson/jellyfin.pgsql:10.11.11-1
+          ports:
+            - name: http
+              containerPort: 8096
+
+          env:
+            - name: POSTGRES_HOST
+              value: homelab-db-rw.database.svc.cluster.local
+
+            - name: POSTGRES_PORT
+              value: "5432"
+
+            - name: POSTGRES_DB
+              value: jellyfin
+
+            - name: POSTGRES_USER
+              value: jellyfin
+
+            - name: POSTGRES_PASSWORD
+              value: jellyfin
+
+          volumeMounts:
+            - name: config
+              persistentVolumeClaim:
+                claimName: jellyfin-config
+
+            - name: cache
+              mountPath: /cache
+
+            - name: media
+              persistentVolumeClaim:
+                claimName: jellyfin-nfs
+
+      volumes:
+        - name: cache
+          emptyDir: {}
