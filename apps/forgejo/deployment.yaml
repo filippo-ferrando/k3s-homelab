@@ -45,8 +45,8 @@ spec:
               value: "forgejo"
           resources:
             limits:
-              memory: 3Gi
-              cpu: "3.0"
+              memory: 2Gi
+              cpu: "2.0"
             requests:
               memory: 512Mi
               cpu: "250m"
