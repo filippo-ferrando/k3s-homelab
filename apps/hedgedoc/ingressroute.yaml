@@ -20,7 +20,8 @@ spec:
     - match: Host(`doc.fferrando.cc`)
       kind: Rule
       middlewares:
-        - hedgedoc-headers
+        - name: hedgedoc-headers
+          namespace: hedgedoc
       services:
         - name: hedgedoc
           port: 3000
