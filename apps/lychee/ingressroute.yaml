@@ -1,0 +1,32 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: lychee-internal
+  namespace: lychee
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`photo.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: lychee
+          port: 8000
+  tls:
+    secretName: lychee-internal-tls
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: lychee-public
+  namespace: lychee
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`photo.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: lychee
+          port: 8000
