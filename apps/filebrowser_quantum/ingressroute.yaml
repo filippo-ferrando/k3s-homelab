@@ -1,0 +1,31 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: filebrowser-internal
+  namespace: filebrowser
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`files.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: filebrowser
+          port: 80
+  tls:
+    secretName: filebrowser-internal-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: filebrowser-public
+  namespace: filebrowser
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`files.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: filebrowser
+          port: 80

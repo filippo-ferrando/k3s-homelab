@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: filebrowser-internal-tls
+  namespace: filebrowser
+spec:
+  secretName: filebrowser-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - files.internal.fferrando.cc

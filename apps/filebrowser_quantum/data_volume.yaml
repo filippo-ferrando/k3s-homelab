@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fbq-data-nfs
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fbq-data-nfs
+  mountOptions:
+    - vers=4
+    - proto=tcp
+  nfs:
+    server: 192.168.10.101
+    path: /mnt/vault/data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fbq-data-nfs
+  namespace: filebrowser
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: fbq-data-nfs
+  resources:
+    requests:
+      storage: 2Ti
