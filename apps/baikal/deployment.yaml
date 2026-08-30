@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: baikal
+  namespace: baikal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: baikal
+  template:
+    metadata:
+      labels:
+        app: baikal
+    spec:
+      containers:
+        - name: baikal
+          image: ckulka/baikal:nginx
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/baikal/config
+              subPath: config
+            - name: data
+              mountPath: /var/www/baikal/Specific
+              subPath: Specific
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: baikal-data
