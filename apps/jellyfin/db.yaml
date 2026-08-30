@@ -2,7 +2,7 @@ apiVersion: postgresql.cnpg.io/v1
 kind: DatabaseRole
 metadata:
   name: jellyfin-user
-  namespace: jellyfin
+  namespace: database
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
