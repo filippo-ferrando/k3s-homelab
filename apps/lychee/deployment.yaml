@@ -54,6 +54,7 @@ spec:
               mountPath: /conf
             - name: uploads
               mountPath: /uploads
+              subPath: /Filippo/Foto
       volumes:
         - name: config
           persistentVolumeClaim:
