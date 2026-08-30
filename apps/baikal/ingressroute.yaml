@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: baikal-public
+  namespace: baikal
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`dav.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: baikal
+          port: 80
+  tls:
+    secretName: baikal-tls
