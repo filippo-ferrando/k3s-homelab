@@ -94,8 +94,8 @@ data:
     [pair google_work]
     a = "google_remote"
     b = "baikal_google"
-    # Explicitly map [ "baikal_collection", "google_collection" ]
-    collections = [["google_work", "fferrando@elemento.cloud"]]
+    # Format: ["alias", "google_collection_id", "baikal_collection_id"]
+    collections = [["google_work", "fferrando@elemento.cloud", "google_work"]]
 
     [storage google_remote]
     type = "google_calendar"
