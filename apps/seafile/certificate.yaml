@@ -6,7 +6,7 @@ metadata:
 spec:
   secretName: seafile-tls
   issuerRef:
-    name: cluster-issuer
+    name: letsencrypt-cloudflare
     kind: ClusterIssuer
   dnsNames:
     - files.internal.fferrando.cc
