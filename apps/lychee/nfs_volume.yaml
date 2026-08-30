@@ -14,7 +14,7 @@ spec:
     - proto=tcp
   nfs:
     server: 192.168.10.101
-    path: /mnt/vault/
+    path: /mnt/vault/data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
