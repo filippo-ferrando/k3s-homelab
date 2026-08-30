@@ -11,7 +11,7 @@ spec:
       kind: Rule
       services:
         - name: lychee
-          port: 8096
+          port: 8000
   tls:
     secretName: lychee-internal-tls
 
@@ -29,4 +29,4 @@ spec:
       kind: Rule
       services:
         - name: lychee
-          port: 8096
+          port: 8000

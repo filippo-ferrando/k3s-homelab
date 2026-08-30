@@ -8,5 +8,5 @@ spec:
     app: lychee
   ports:
     - name: http
-      port: 80
-      targetPort: 80
+      port: 8000
+      targetPort: 8000
