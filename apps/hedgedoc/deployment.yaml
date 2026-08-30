@@ -47,9 +47,15 @@ spec:
             - name: CMD_DB_DATABASE
               value: "hedgedoc"
             - name: CMD_DB_USERNAME
-              value: "hedgedoc"
+              valueFrom:
+                secretKeyRef:
+                  name: hedgedoc-db-credentials
+                  key: username
             - name: CMD_DB_PASSWORD
-              value: "hedgedoc"
+              valueFrom:
+                secretKeyRef:
+                  name: hedgedoc-db-credentials
+                  key: password
             - name: CMD_ALLOW_ANONYMOUS
               value: "false"
             - name: CMD_ALLOW_ANONYMOUS_EDIT
