@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vdirsyncer
+  namespace: baikal
+spec:
+  schedule: "*/30 * * * *" # Runs every 30 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: vdirsyncer
+              image: vdirsyncer/vdirsyncer:latest
+              command:
+                - /bin/sh
+                - -c
+                - "vdirsyncer discover && vdirsyncer sync"
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/vdirsyncer
+                - name: status
+                  mountPath: /vdirsyncer/status
+              env:
+                - name: BAIKAL_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: baikal-rdfilippo-credentials
+                      key: username
+                - name: BAIKAL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: baikal-rdfilippo-credentials
+                      key: password
+                - name: GOOGLE_WORK_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: google-work-credentials
+                      key: client_id
+                - name: GOOGLE_WORK_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: google-work-credentials
+                      key: client_secret
+          volumes:
+            - name: config
+              configMap:
+                name: vdirsyncer-config
+            - name: status
+              persistentVolumeClaim:
+                claimName: vdirsyncer-status
