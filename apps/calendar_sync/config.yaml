@@ -94,7 +94,8 @@ data:
     [pair google_work]
     a = "google_remote"
     b = "baikal_google"
-    collections = ["from a", "from b"]
+    # Pull collections exclusively from Google
+    collections = ["from a"]
 
     [storage google_remote]
     type = "google_calendar"
@@ -104,6 +105,7 @@ data:
 
     [storage baikal_google]
     type = "caldav"
+    # Point directly to the target calendar you created in Baïkal
     url = "http://baikal.baikal.svc.cluster.local/dav.php/calendars/rdfilippo/google_work/"
     username.fetch = ["command", "printenv", "BAIKAL_USERNAME"]
     password.fetch = ["command", "printenv", "BAIKAL_PASSWORD"]
