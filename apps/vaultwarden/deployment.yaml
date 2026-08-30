@@ -31,9 +31,19 @@ spec:
               protocol: TCP
           env:
             - name: DOMAIN
-              value: "https://vault.fferrando.cc"
+              value: "https://vault.internal.fferrando.cc"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-db-credentials
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-db-credentials
+                  key: password
             - name: DATABASE_URL
-              value: "postgresql://vaultwarden:vaultwarden@homelab-db-rw.database.svc.cluster.local:5432/vaultwarden"
+              value: "postgresql://$(DB_USER):$(DB_PASS)@homelab-db-rw.database.svc.cluster.local:5432/vaultwarden"
             - name: WEBSOCKET_ENABLED
               value: "true"
           volumeMounts:
@@ -62,17 +72,3 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: vaultwarden-data
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: vaultwarden
-  namespace: vaultwarden
-spec:
-  selector:
-    app: vaultwarden
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
