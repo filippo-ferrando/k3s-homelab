@@ -9,4 +9,4 @@ spec:
     name: letsencrypt-cloudflare
     kind: ClusterIssuer
   dnsNames:
-    - forgejo.internal.fferrando.cc
+    - git.internal.fferrando.cc
