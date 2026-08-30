@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+  namespace: filebrowser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: filebrowser
+  template:
+    metadata:
+      labels:
+        app: filebrowser
+    spec:
+      containers:
+        - name: filebrowser
+          image: gtstef/filebrowser:beta
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: fb-config-folder
+              mountPath: /home/filebrowser/data
+            - name: fb-config
+              mountPath: /home/filebrowser/data/config.yaml
+              subPath: config.yaml
+            - name: fb-media
+              mountPath: /media
+            - name: fb-data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: fb-config-folder
+          persistentVolumeClaim:
+            claimName: fbq-config
+        - name: fb-config
+          configMap:
+            name: filebrowser-config
+        - name: fb-media
+          persistentVolumeClaim:
+            claimName: fbq-media-nfs
+        - name: fb-data
+          persistentVolumeClaim:
+            claimName: fbq-data-nfs
