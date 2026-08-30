@@ -44,6 +44,19 @@ spec:
               memory: 512Mi
               cpu: "250m"
 
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
           volumeMounts:
             - name: config
               mountPath: /config
