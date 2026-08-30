@@ -23,7 +23,7 @@ spec:
             - name: TIMEZONE
               value: "Europe/Rome"
             - name: APP_URL
-              value: "https://photo.fferrando.cc"
+              value: "https://photo.internal.fferrando.cc"
             - name: APP_KEY
               valueFrom:
                 secretKeyRef:
