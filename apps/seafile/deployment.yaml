@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seafile
+  namespace: seafile
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seafile
+  template:
+    metadata:
+      labels:
+        app: seafile
+    spec:
+      containers:
+        - name: seafile
+          image: seafileltd/seafile-mc:latest
+          env:
+            - name: SEAFILE_ADMIN_EMAIL
+              value: "ferrandodfilippo@ik.me"
+            - name: SEAFILE_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: seafile-credentials
+                  key: admin-password
+            - name: SEAFILE_SERVER_HOSTNAME
+              value: "files.fferrando.cc"
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: seafile-data
+              mountPath: /shared
+      volumes:
+        - name: seafile-data
+          persistentVolumeClaim:
+            claimName: seafile-nfs-pvc
