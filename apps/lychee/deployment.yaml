@@ -13,9 +13,6 @@ spec:
       labels:
         app: lychee
     spec:
-      securityContext:
-        fsGroup: 33
-        fsGroupChangePolicy: "OnRootMismatch"
       containers:
         - name: lychee
           image: lycheeorg/lychee:latest
@@ -23,6 +20,10 @@ spec:
             - name: http
               containerPort: 8000
           env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
             - name: TIMEZONE
               value: "Europe/Rome"
             - name: TRUSTED_PROXIES
