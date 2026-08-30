@@ -31,10 +31,15 @@ spec:
               value: jellyfin
 
             - name: POSTGRES_USER
-              value: jellyfin
-
+              valueFrom:
+                secretKeyRef:
+                  name: jellyfin-db-credentials
+                  key: username
             - name: POSTGRES_PASSWORD
-              value: jellyfin
+              valueFrom:
+                secretKeyRef:
+                  name: jellyfin-db-credentials
+                  key: password
 
           resources:
             limits:
