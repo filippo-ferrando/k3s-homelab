@@ -94,7 +94,7 @@ data:
     [pair google_work]
     a = "google_remote"
     b = "baikal_google"
-    collections = ["from a", "from b"] # Syncs all collections dynamically
+    collections = ["from a", "from b"]
 
     [storage google_remote]
     type = "google_calendar"
