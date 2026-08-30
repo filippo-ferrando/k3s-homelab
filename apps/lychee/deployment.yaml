@@ -22,6 +22,10 @@ spec:
           env:
             - name: TIMEZONE
               value: "Europe/Rome"
+            - name: TRUSTED_PROXIES
+              value: "*"
+            - name: APP_FORCE_HTTPS
+              value: "true"
             - name: APP_URL
               value: "https://photo.internal.fferrando.cc"
             - name: APP_KEY
