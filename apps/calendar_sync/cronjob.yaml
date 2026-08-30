@@ -10,6 +10,9 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 1000
+            runAsUser: 1000
           containers:
             - name: vdirsyncer
               image: bleala/vdirsyncer:latest
