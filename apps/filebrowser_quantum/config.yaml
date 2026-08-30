@@ -7,9 +7,9 @@ data:
   config.yaml: |
     server:
       cacheDir: /home/filebrowser/data/tmp
-    sources:
-      - path: /media
-      - path: /data
+      sources:
+        - path: /media
+        - path: /data
     config:
       defaultEnabled: true
     auth:
