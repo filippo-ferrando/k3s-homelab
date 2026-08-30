@@ -24,6 +24,11 @@ spec:
               value: "Europe/Rome"
             - name: APP_URL
               value: "https://photo.fferrando.cc"
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lychee-app-key
+                  key: app-key
             - name: DB_CONNECTION
               value: "pgsql"
             - name: DB_HOST
