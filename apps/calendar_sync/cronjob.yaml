@@ -12,7 +12,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: vdirsyncer
-              image: vdirsyncer/vdirsyncer:latest
+              image: bleala/vdirsyncer:latest
               command:
                 - /bin/sh
                 - -c
