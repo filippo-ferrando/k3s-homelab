@@ -3,7 +3,7 @@ configuration:
   timeZone: "Europe/Rome"
   startTime: "03:00"
   endTime: "05:00"
-  rebootDays: [mon, fri, sat, sun]
+  rebootDays: [mon, tue, wed, thu, fri, sat, sun]
 
   # Drain settings tuned for Longhorn volume handoffs & CNPG database failovers
   drainGracePeriod: 1200
