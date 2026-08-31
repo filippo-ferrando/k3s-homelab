@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lychee-uploads
+  namespace: lychee
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-single-replica
+  resources:
+    requests:
+      storage: 2Gi
