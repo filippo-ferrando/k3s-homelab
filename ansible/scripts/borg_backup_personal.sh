@@ -3,6 +3,8 @@ PUSHGATEWAY_URL="https://pushgateway.interal.fferrando.cc"
 JOB_NAME="personal_files"
 INSTANCE_NAME=$(hostname)
 START_TIME=$(date +%s)
+export REPO="/mnt/data/backup-casper"
+export BORG_PASSPHRASE="Djelfo007"
 
 borg create \
   --verbose \
