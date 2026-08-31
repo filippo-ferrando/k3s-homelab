@@ -13,6 +13,15 @@ spec:
       labels:
         app: librephoto-proxy
     spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - librephoto-backend
       containers:
         - name: proxy
           image: reallibrephotos/librephotos-proxy:latest
