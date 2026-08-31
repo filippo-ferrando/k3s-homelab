@@ -13,6 +13,9 @@ spec:
       labels:
         app: librephoto-backend
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
       containers:
         - name: backend
           image: reallibrephotos/librephotos:latest
