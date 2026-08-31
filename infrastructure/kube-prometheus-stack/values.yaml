@@ -1,5 +1,7 @@
 prometheus:
   prometheusSpec:
+    retention: 5d
+    retentionSize: 3GiB
     serviceMonitorSelectorNilUsesHelmValues: false
     serviceMonitorSelector: {}
     serviceMonitorNamespaceSelector: {}
