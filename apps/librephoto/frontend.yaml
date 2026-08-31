@@ -13,6 +13,16 @@ spec:
       labels:
         app: librephoto-frontend
     spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - librephoto-backend
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: frontend
           image: reallibrephotos/librephotos-frontend:latest
