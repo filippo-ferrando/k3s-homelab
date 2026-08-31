@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "argocd": {
+    "fileMatch": [
+      "^infrastructure/.+\\.yaml$"
+    ]
+  },
+  "kubernetes": {
+    "fileMatch": [
+      "^apps/.+\\.yaml$"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Group patch and minor updates together to reduce PR clutter",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "description": "Label and separate infrastructure Helm chart updates",
+      "matchPaths": ["infrastructure/**"],
+      "labels": ["infrastructure", "renovate"]
+    },
+    {
+      "description": "Label and separate application container image updates",
+      "matchPaths": ["apps/**"],
+      "labels": ["apps", "renovate"]
+    }
+  ]
+}
