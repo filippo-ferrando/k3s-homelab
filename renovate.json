@@ -4,13 +4,13 @@
     "config:recommended"
   ],
   "argocd": {
-    "fileMatch": [
-      "^infrastructure/.+\\.yaml$"
+    "managerFilePatterns": [
+      "/^infrastructure/.+\\.yaml$/"
     ]
   },
   "kubernetes": {
-    "fileMatch": [
-      "^apps/.+\\.yaml$"
+    "managerFilePatterns": [
+      "/^apps/.+\\.yaml$/"
     ]
   },
   "packageRules": [
@@ -21,12 +21,16 @@
     },
     {
       "description": "Label and separate infrastructure Helm chart updates",
-      "matchPaths": ["infrastructure/**"],
+      "matchFileNames": [
+        "infrastructure/**"
+      ],
       "labels": ["infrastructure", "renovate"]
     },
     {
       "description": "Label and separate application container image updates",
-      "matchPaths": ["apps/**"],
+      "matchFileNames": [
+        "apps/**"
+      ],
       "labels": ["apps", "renovate"]
     }
   ]
