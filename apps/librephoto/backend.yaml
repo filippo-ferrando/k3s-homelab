@@ -41,9 +41,9 @@ spec:
                   name: librephoto-db-credentials
                   key: password
             - name: ALLOWED_HOSTS
-              value: "photo.internal.fferrando.cc,photo.fferrando.cc,librephoto-backend,127.0.0.1,localhost,*"
+              value: "photo.internal.fferrando.cc photo.fferrando.cc librephoto-backend 127.0.0.1 localhost *"
             - name: CSRF_TRUSTED_ORIGINS
-              value: "https://photo.internal.fferrando.cc,https://photo.fferrando.cc"
+              value: "https://photo.internal.fferrando.cc https://photo.fferrando.cc"
             - name: REDIS_HOST
               value: "librephoto-redis"
             - name: REDIS_PORT
