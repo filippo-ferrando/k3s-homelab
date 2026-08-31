@@ -22,6 +22,7 @@ spec:
                     operator: In
                     values:
                       - librephoto-backend
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: proxy
           image: reallibrephotos/librephotos-proxy:latest
