@@ -81,6 +81,6 @@ spec:
         - name: photos
           persistentVolumeClaim:
             claimName: lychee-photos
-        - name:
+        - name: uploads
           persistentVolumeClaim:
             claimName: lychee-uploads
