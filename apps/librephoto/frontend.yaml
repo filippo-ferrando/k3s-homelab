@@ -32,7 +32,7 @@ spec:
             - name: BACKEND_PORT
               value: "8001"
           ports:
-            - containerPort: 80
+            - containerPort: 3000
               name: http
           volumeMounts:
             - name: protected-media
@@ -49,8 +49,8 @@ metadata:
   namespace: librephoto
 spec:
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 3000
+      targetPort: 3000
       name: http
   selector:
     app: librephoto-frontend
