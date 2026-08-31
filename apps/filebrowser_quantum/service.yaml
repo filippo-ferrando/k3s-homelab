@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: filebrowser
   namespace: filebrowser
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   ports:
     - name: http

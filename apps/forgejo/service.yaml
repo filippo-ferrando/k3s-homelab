@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: forgejo
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   selector:
     app: forgejo

@@ -3,6 +3,8 @@ kind: NetworkPolicy
 metadata:
   name: longhorn-manager-prometheus
   namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   podSelector:
     matchLabels:

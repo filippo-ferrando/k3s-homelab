@@ -2,6 +2,8 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: forgejo-data-nfs
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   capacity:
     storage: 2Ti
@@ -21,6 +23,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: forgejo-data
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   accessModes:
     - ReadWriteMany

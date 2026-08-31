@@ -1,14 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: vaultwarden-internal-tls
-  namespace: vaultwarden
+  name: photo-internal-tls
+  namespace: librephoto
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  secretName: vaultwarden-internal-tls
+  secretName: photo-internal-tls
   issuerRef:
     name: letsencrypt-cloudflare
     kind: ClusterIssuer
   dnsNames:
-    - vault.internal.fferrando.cc
+    - photo.internal.fferrando.cc

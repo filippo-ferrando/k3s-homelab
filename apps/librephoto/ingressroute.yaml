@@ -1,21 +1,10 @@
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: photo-internal-tls
-  namespace: librephoto
-spec:
-  secretName: photo-internal-tls
-  issuerRef:
-    name: letsencrypt-cloudflare
-    kind: ClusterIssuer
-  dnsNames:
-    - photo.internal.fferrando.cc
----
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: librephoto-internal
   namespace: librephoto
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - websecure
@@ -33,6 +22,8 @@ kind: IngressRoute
 metadata:
   name: librephoto-public
   namespace: librephoto
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - cf-public

@@ -3,6 +3,8 @@ kind: Middleware
 metadata:
   name: hedgedoc-headers
   namespace: hedgedoc
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   headers:
     customRequestHeaders:
@@ -13,6 +15,8 @@ kind: IngressRoute
 metadata:
   name: hedgedoc
   namespace: hedgedoc
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - cf-public

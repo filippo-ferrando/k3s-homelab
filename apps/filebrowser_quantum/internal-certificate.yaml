@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: filebrowser-internal-tls
   namespace: filebrowser
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: filebrowser-internal-tls
   issuerRef:

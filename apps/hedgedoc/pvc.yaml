@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: hedgedoc-uploads
   namespace: hedgedoc
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   accessModes:
     - ReadWriteOnce

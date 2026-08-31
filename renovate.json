@@ -18,7 +18,7 @@
       "description": "Redirect Forgejo image lookups away from rate-limited Codeberg endpoint",
       "matchPackageNames": [
         "codeberg.org/forgejo/forgejo",
-        "codeberge.org/forgejo/forgejo:"
+        "codeberg.org/forgejo/forgejo:"
       ],
       "overridePackageName": "forgejo/forgejo",
       "registryUrls": [

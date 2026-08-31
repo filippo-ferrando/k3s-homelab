@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: longhorn-internal-tls
   namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: longhorn-internal-tls
   issuerRef:

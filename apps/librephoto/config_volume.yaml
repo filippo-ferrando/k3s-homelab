@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: librephoto-protected-media
   namespace: librephoto
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   accessModes:
     - ReadWriteOnce

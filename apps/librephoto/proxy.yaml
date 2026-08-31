@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: librephoto-proxy
   namespace: librephoto
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
   selector:
@@ -50,6 +52,8 @@ kind: Service
 metadata:
   name: librephoto-proxy
   namespace: librephoto
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   ports:
     - port: 80

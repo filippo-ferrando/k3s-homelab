@@ -2,6 +2,8 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: longhorn-single-replica
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 provisioner: driver.longhorn.io
 parameters:
   numberOfReplicas: "1"

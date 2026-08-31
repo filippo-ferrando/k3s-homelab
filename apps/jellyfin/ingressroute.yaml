@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: jellyfin-internal
   namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - websecure
@@ -21,6 +23,8 @@ kind: IngressRoute
 metadata:
   name: jellyfin-public
   namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - cf-public

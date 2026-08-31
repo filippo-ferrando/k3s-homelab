@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: vaultwarden-internal
   namespace: vaultwarden
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - websecure

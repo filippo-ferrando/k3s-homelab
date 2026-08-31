@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: jellyfin-internal-tls
   namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: jellyfin-internal-tls
   issuerRef:

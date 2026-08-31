@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: grafana-internal
   namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: grafana-internal-tls
   issuerRef:

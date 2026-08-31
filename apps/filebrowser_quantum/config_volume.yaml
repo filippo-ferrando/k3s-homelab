@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: fbq-config
   namespace: filebrowser
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   accessModes:
     - ReadWriteOnce

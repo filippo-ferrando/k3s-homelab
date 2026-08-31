@@ -5,6 +5,8 @@ metadata:
   namespace: hedgedoc
   labels:
     app: hedgedoc
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
   selector:

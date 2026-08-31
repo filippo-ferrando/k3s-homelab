@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: portfolio
   namespace: portfolio
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - cf-public

@@ -4,6 +4,8 @@ kind: IngressRoute
 metadata:
   name: forgejo-internal
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - websecure
@@ -23,6 +25,8 @@ kind: IngressRoute
 metadata:
   name: forgejo-public
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - cf-public
@@ -40,6 +44,8 @@ kind: IngressRouteTCP
 metadata:
   name: forgejo-ssh
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
     - ssh

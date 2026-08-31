@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: pushgateway-internal-tls
   namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: pushgateway-internal-tls
   issuerRef:

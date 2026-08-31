@@ -4,6 +4,8 @@ kind: SealedSecret
 metadata:
   name: cloudflare-api-token-secret
   namespace: cert-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   encryptedData:
     token: AgAlvvzW5LhbMIgV4gBfnprSxba2o0PLShK8d+E8lVsCSfcsLR5yw4h+sVQXDUfhK/psSGTIl7j/35qsSijDioUFi2u6iIvJemmyk/dwHQYh7DWs5zjUF46G/Id+F99fzZBMxy3YDwyEZqDLO9Qf2eQTGTnWxFIUaEPPKqvnI/ZMRMz4XpbTKCuO/ou/BJdXz8pYxv8xji/4FbeIp9aMKP9r0kC6TcDIAs0NQk8CjbS8bQNQYu3AG0vN72c7w4DGuyNo9zdA24mlmfmN5k/j+jgPBEmGJwva/vgYJ6uy6Rlkjqo6/8/uh7rFriM5w+KMkUnsdWrroiDQHM6zhVocgCpPlBgxf0qsUZoMiT5GEh+XZuqLaGoMWfwi3ESzUn4jT6Nx8ZP3VGKFInHWYuhQoyqlUIl9O8P2r7UbkKUGlQyVhKhjazvGZvYrYZpUf0Kct+T2JNzcxK+2Xw0PZXFH5JaQw7CiFZaeSF+hYaLQorABLC8qvJVwwkdPhICaZUaUw6mQzO1Pxb4XFsg5bGBGy7W10wUTwa4tnh3qCwOUK5eJZnPMPOljYtHsPZk0F9aMrpaSwpmP+ftdPUquDLZBV9ozPwmSijy+pWKfvQq/8Ku+87c99qAkWk4roYQQeaGp+EaUQrZtOHaI1BpVi+gRFY2IYElqrZ6/pmE5sAqXPH9TnJaKCUTgZA/6b6txrLSHPSSLDP2LMp2uc0wiTLYYKvp0na03spuWnY42rbdMb2g+IIHveHBEQA1Do7B4oZW71cCB6oROLw==

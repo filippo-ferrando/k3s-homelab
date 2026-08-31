@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: forgejo-internal-tls
   namespace: forgejo
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: forgejo-internal-tls
   issuerRef:

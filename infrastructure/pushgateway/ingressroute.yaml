@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: pushgateway
   namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   entryPoints:
     - websecure

@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: argocd-internal
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   secretName: argocd-internal-tls
   issuerRef:

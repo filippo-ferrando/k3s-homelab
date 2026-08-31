@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: filebrowser-config
   namespace: filebrowser
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 data:
   config.yaml: |
     server:
