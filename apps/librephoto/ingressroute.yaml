@@ -20,11 +20,6 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`photo.internal.fferrando.cc`) && (PathPrefix(`/api`) || PathPrefix(`/media`) || PathPrefix(`/protected_media`))
-      kind: Rule
-      services:
-        - name: librephoto-backend
-          port: 8001
     - match: Host(`photo.internal.fferrando.cc`)
       kind: Rule
       services:
@@ -42,11 +37,6 @@ spec:
   entryPoints:
     - cf-public
   routes:
-    - match: Host(`photo.fferrando.cc`) && (PathPrefix(`/api`) || PathPrefix(`/media`) || PathPrefix(`/protected_media`))
-      kind: Rule
-      services:
-        - name: librephoto-backend
-          port: 8001
     - match: Host(`photo.fferrando.cc`)
       kind: Rule
       services:
