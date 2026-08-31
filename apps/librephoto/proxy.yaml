@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librephoto-proxy
+  namespace: librephoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: librephoto-proxy
+  template:
+    metadata:
+      labels:
+        app: librephoto-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: reallibrephotos/librephotos-proxy:latest
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: protected-media
+              mountPath: /protected_media
+            - name: nfs-data
+              mountPath: /data
+      volumes:
+        - name: protected-media
+          persistentVolumeClaim:
+            claimName: librephoto-protected-media
+        - name: nfs-data
+          persistentVolumeClaim:
+            claimName: librephoto-nfs-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: librephoto-proxy
+  namespace: librephoto
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  selector:
+    app: librephoto-proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: librephoto
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+  selector:
+    app: librephoto-backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: librephoto
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: librephoto-frontend

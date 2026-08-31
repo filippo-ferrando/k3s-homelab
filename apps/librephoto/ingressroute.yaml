@@ -23,8 +23,8 @@ spec:
     - match: Host(`photo.internal.fferrando.cc`)
       kind: Rule
       services:
-        - name: librephoto-frontend
-          port: 3000
+        - name: librephoto-proxy
+          port: 80
   tls:
     secretName: photo-internal-tls
 ---
@@ -40,5 +40,5 @@ spec:
     - match: Host(`photo.fferrando.cc`)
       kind: Rule
       services:
-        - name: librephoto-frontend
-          port: 3000
+        - name: librephoto-proxy
+          port: 80
