@@ -28,6 +28,8 @@ spec:
               value: "1000"
             - name: TIMEZONE
               value: "Europe/Rome"
+            - name: LYCHEE_UPLOADS
+              value: "/uploads"
             - name: TRUSTED_PROXIES
               value: "*"
             - name: APP_FORCE_HTTPS
@@ -67,13 +69,18 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /conf
+            - name: photos
+              mountPath: /photos
+              subPath: Filippo/Foto
             - name: uploads
               mountPath: /uploads
-              subPath: Filippo/Foto
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: lychee-config
-        - name: uploads
+        - name: photos
+          persistentVolumeClaim:
+            claimName: lychee-photos
+        - name:
           persistentVolumeClaim:
             claimName: lychee-uploads
