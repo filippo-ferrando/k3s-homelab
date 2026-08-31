@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: reallibrephotos/librephotos-backend:latest
+          image: reallibrephotos/librephotos:latest
           env:
             - name: SECRET_KEY
               valueFrom:
