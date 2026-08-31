@@ -64,10 +64,10 @@ spec:
               value: "false"
           volumeMounts:
             - name: nfs-data
-              mountPath: /photos/filippo
+              mountPath: /data/filippo
               subPath: Filippo/Foto
             - name: nfs-data
-              mountPath: /photos/famiglia
+              mountPath: /data/famiglia
               subPath: Famiglia/Foto
             - name: protected-media
               mountPath: /protected_media
