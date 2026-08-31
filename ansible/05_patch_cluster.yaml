@@ -1,0 +1,22 @@
+---
+- name: Patch Host Operating Systems
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Run full DNF package update
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
+    - name: Check if reboot is required
+      ansible.builtin.command: needs-restarting -r
+      register: reboot_check
+      failed_when: false
+      changed_when: false
+
+    - name: Flag host for Kured reboot
+      ansible.builtin.file:
+        path: /var/run/reboot-required
+        state: touch
+        mode: "0644"
+      when: reboot_check.rc == 1
