@@ -6,8 +6,8 @@ configuration:
   rebootDays: [mon, fri, sat, sun]
 
   # Drain settings tuned for Longhorn volume handoffs & CNPG database failovers
-  drainGracePeriod: 300
-  drainTimeout: 900
+  drainGracePeriod: 1200
+  drainTimeout: "20m"
   forceReboot: false
 
   # Prevent deadlocks if a node hangs mid-reboot
