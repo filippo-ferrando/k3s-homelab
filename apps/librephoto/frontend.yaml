@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librephoto-frontend
+  namespace: librephoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: librephoto-frontend
+  template:
+    metadata:
+      labels:
+        app: librephoto-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: reallibrephotos/librephotos-frontend:latest
+          env:
+            - name: BACKEND_HOST
+              value: "librephoto-backend"
+            - name: BACKEND_PORT
+              value: "8001"
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: protected-media
+              mountPath: /protected_media
+      volumes:
+        - name: protected-media
+          persistentVolumeClaim:
+            claimName: librephoto-protected-media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: librephoto-frontend
+  namespace: librephoto
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  selector:
+    app: librephoto-frontend

@@ -1,0 +1,27 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: librephoto-user
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  cluster:
+    name: homelab-db
+  name: librephoto
+  login: true
+  passwordSecret:
+    name: librephoto-db-credentials
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: librephoto
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  name: librephoto
+  owner: librephoto
+  cluster:
+    name: homelab-db

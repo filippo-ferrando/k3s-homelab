@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librephoto-backend
+  namespace: librephoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: librephoto-backend
+  template:
+    metadata:
+      labels:
+        app: librephoto-backend
+    spec:
+      containers:
+        - name: backend
+          image: reallibrephotos/librephotos-backend:latest
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: librephoto-secret-key
+                  key: secret-key
+            - name: DB_ENGINE
+              value: "django.db.backends.postgresql"
+            - name: DB_NAME
+              value: "librephoto"
+            - name: DB_HOST
+              value: "homelab-db-rw.database.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: librephoto-db-credentials
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: librephoto-db-credentials
+                  key: password
+            - name: REDIS_HOST
+              value: "librephoto-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: FRONTEND_BASE_URL
+              value: "https://photo.internal.fferrando.cc"
+            - name: WEB_CONCURRENCY
+              value: "1"
+            - name: FEATURE_FACE_DETECTION
+              value: "false"
+            - name: FEATURE_FACE_CLUSTER
+              value: "false"
+            - name: FEATURE_IMAGE_CAPTIONING
+              value: "false"
+            - name: FEATURE_SCENE_CLASSIFICATION
+              value: "false"
+          volumeMounts:
+            - name: nfs-data
+              mountPath: /photos/filippo
+              subPath: Filippo/Foto
+            - name: nfs-data
+              mountPath: /photos/famiglia
+              subPath: Famiglia/Foto
+            - name: protected-media
+              mountPath: /protected_media
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: nfs-data
+          persistentVolumeClaim:
+            claimName: librephoto-nfs-data
+        - name: protected-media
+          persistentVolumeClaim:
+            claimName: librephoto-protected-media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: librephoto-backend
+  namespace: librephoto
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+  selector:
+    app: librephoto-backend

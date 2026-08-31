@@ -1,0 +1,44 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: photo-internal-tls
+  namespace: librephoto
+spec:
+  secretName: photo-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - photo.internal.fferrando.cc
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: librephoto-internal
+  namespace: librephoto
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`photo.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: librephoto-frontend
+          port: 80
+  tls:
+    secretName: photo-internal-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: librephoto-public
+  namespace: librephoto
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`photo.fferrando.cc`)
+      kind: Rule
+      services:
+        - name: librephoto-frontend
+          port: 80
