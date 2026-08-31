@@ -52,6 +52,8 @@ spec:
               value: "https://photo.internal.fferrando.cc"
             - name: WEB_CONCURRENCY
               value: "1"
+            - name: WORKERS
+              value: "1"
             - name: FEATURE_FACE_DETECTION
               value: "false"
             - name: FEATURE_FACE_CLUSTER
@@ -61,6 +63,8 @@ spec:
             - name: FEATURE_SCENE_CLASSIFICATION
               value: "false"
             - name: FEATURE_LLM
+              value: "false"
+            - name: FEATURE_REVERSE_GEOCODING
               value: "false"
           volumeMounts:
             - name: nfs-data
