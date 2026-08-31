@@ -1,0 +1,27 @@
+configuration:
+  rebootSentinel: /var/run/reboot-required
+  timeZone: "Europe/Rome"
+  startTime: "03:00"
+  endTime: "05:00"
+  rebootDays: [mon, fri, sat, sun]
+
+  # Drain settings tuned for Longhorn volume handoffs & CNPG database failovers
+  drainGracePeriod: 300
+  drainTimeout: 900
+  forceReboot: false
+
+  # Prevent deadlocks if a node hangs mid-reboot
+  lockTtl: 1h0m0s
+
+# Toleration required for control plane node 'magi'
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+# Prometheus metrics for Grafana monitoring
+metrics:
+  create: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
