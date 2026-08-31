@@ -15,8 +15,20 @@
   },
   "packageRules": [
     {
+      "description": "Redirect Forgejo image lookups away from rate-limited Codeberg endpoint",
+      "matchPackageNames": [
+        "codeberg.org/forgejo/forgejo"
+      ],
+      "registryUrls": [
+        "https://data.forgejo.org"
+      ]
+    },
+    {
       "description": "Group patch and minor updates together to reduce PR clutter",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "groupName": "non-major dependencies"
     },
     {
@@ -24,14 +36,20 @@
       "matchFileNames": [
         "infrastructure/**"
       ],
-      "labels": ["infrastructure", "renovate"]
+      "labels": [
+        "infrastructure",
+        "renovate"
+      ]
     },
     {
       "description": "Label and separate application container image updates",
       "matchFileNames": [
         "apps/**"
       ],
-      "labels": ["apps", "renovate"]
+      "labels": [
+        "apps",
+        "renovate"
+      ]
     }
   ]
 }
