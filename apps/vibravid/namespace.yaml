@@ -1,0 +1,8 @@
+# apps/vibravid/network.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vibravid
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+

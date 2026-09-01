@@ -1,0 +1,50 @@
+# apps/vibravid/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vibravid
+  namespace: vibravid
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vibravid
+  template:
+    metadata:
+      labels:
+        app: vibravid
+    spec:
+      containers:
+        - name: vibravid
+          image: astraelabs/vibravid:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: ALLOWED_HOSTS
+              value: "download.internal.fferrando.cc"
+            - name: CSRF_TRUSTED_ORIGINS
+              value: "https://download.internal.fferrando.cc"
+            - name: VIBRAVID_VIDEO_DIR
+              value: "/downloads"
+            - name: VIBRAVID_CONFIG_DIR
+              value: "/config"
+            - name: VIBRAVID_DB_DIR
+              value: "/config/db"
+            - name: VIBRAVID_LOGS_DIR
+              value: "/config/logs"
+          volumeMounts:
+            - name: media
+              mountPath: /downloads
+              subPath: TV
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: vibravid-media
+        - name: config
+          persistentVolumeClaim:
+            claimName: vibravid-config

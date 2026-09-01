@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vibravid-internal-tls
+  namespace: vibravid
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  secretName: vibravid-internal-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - download.internal.fferrando.cc
