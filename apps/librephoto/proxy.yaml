@@ -16,6 +16,8 @@ spec:
         app: librephoto-proxy
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
       affinity:
         podAffinity:
@@ -37,7 +39,11 @@ spec:
             - name: protected-media
               mountPath: /protected_media
             - name: nfs-data
-              mountPath: /data
+              mountPath: /data/filippo
+              subPath: Filippo/Foto
+            - name: nfs-data
+              mountPath: /data/famiglia
+              subPath: Famiglia/Foto
       volumes:
         - name: protected-media
           persistentVolumeClaim:
