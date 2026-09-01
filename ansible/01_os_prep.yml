@@ -23,6 +23,7 @@
           - libvirt
           - zram-generator
           - dnf-utils
+          - epel-release
         state: present
       register: dnf_install
 
