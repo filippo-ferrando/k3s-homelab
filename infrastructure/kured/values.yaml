@@ -1,7 +1,7 @@
 configuration:
   rebootSentinel: /var/run/reboot-required
   timeZone: "Europe/Rome"
-  startTime: "03:00"
+  startTime: "01:00"
   endTime: "05:00"
   rebootDays: [mon, tue, wed, thu, fri, sat, sun]
 
