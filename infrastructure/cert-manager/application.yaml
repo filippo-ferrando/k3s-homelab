@@ -15,6 +15,10 @@ spec:
       parameters:
         - name: installCRDs
           value: "true"
+        - name: prometheus.servicemonitor.enabled
+          value: "true"
+        - name: prometheus.servicemonitor.prometheusInstance
+          value: "kube-prometheus-stack"
   destination:
     server: "https://kubernetes.default.svc"
     namespace: cert-manager
