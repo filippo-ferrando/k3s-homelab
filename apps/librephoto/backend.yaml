@@ -24,6 +24,8 @@ spec:
         - name: backend
           image: reallibrephotos/librephotos:latest
           env:
+            - name: BASE_LOGS
+              value: "/tmp/logs"
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
