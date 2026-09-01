@@ -8,6 +8,9 @@ metadata:
 spec:
   instances: 3
 
+  monitoring:
+    enablePodMonitor: true
+
   # The operator will ensure pods are spread across balthazar, caelium, and casper
   affinity:
     enablePodAntiAffinity: true
