@@ -1,2444 +1,1543 @@
-{
-  "apiVersion": "dashboard.grafana.app/v2",
-  "kind": "Dashboard",
-  "metadata":
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-k3s-homelab
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+data:
+  k3s-homelab.json: |
     {
-      "name": "k3s-homelab",
-      "namespace": "default",
-      "title": "K3s Homelab Overview",
-    },
-  "spec":
-    {
-      "annotations":
-        [
+      "apiVersion": "dashboard.grafana.app/v2",
+      "kind": "Dashboard",
+      "metadata": {
+        "name": "k3s-homelab",
+        "namespace": "default",
+        "title": "K3s Homelab Overview"
+      },
+      "spec": {
+        "annotations": [
           {
             "kind": "AnnotationQuery",
-            "spec":
-              {
-                "query":
-                  {
-                    "kind": "DataQuery",
-                    "group": "grafana",
-                    "version": "v0",
-                    "datasource": { "name": "-- Grafana --" },
-                    "spec": {},
-                  },
-                "enable": true,
-                "hide": true,
-                "iconColor": "rgba(0, 211, 255, 1)",
-                "name": "Annotations & Alerts",
-                "builtIn": true,
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "group": "grafana",
+                "version": "v0",
+                "datasource": {
+                  "name": "-- Grafana --"
+                },
+                "spec": {}
               },
-          },
+              "enable": true,
+              "hide": true,
+              "iconColor": "rgba(0, 211, 255, 1)",
+              "name": "Annotations & Alerts",
+              "builtIn": true
+            }
+          }
         ],
-      "cursorSync": "Crosshair",
-      "editable": true,
-      "elements":
-        {
-          "panel-1":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 1,
-                  "title": "Nodes",
-                  "data":
+        "cursorSync": "Crosshair",
+        "editable": true,
+        "elements": {
+          "panel-1": {
+            "kind": "Panel",
+            "spec": {
+              "id": 1,
+              "title": "Nodes",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          { "expr": "count(kube_node_info)" },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "count(kube_node_info)" }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0",
+                "spec": {
+                  "options": { "colorMode": "value", "graphMode": "area" }
+                }
+              }
+            }
+          },
+          "panel-2": {
+            "kind": "Panel",
+            "spec": {
+              "id": 2,
+              "title": "Ready nodes",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "options":
-                            { "colorMode": "value", "graphMode": "area" },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})" }
                         },
-                    },
-                },
-            },
-          "panel-2":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 2,
-                  "title": "Ready nodes",
-                  "data":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0",
+                "spec": {
+                  "options": { "colorMode": "value", "graphMode": "area" }
+                }
+              }
+            }
+          },
+          "panel-3": {
+            "kind": "Panel",
+            "spec": {
+              "id": 3,
+              "title": "Unhealthy pods",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum(kube_node_status_condition{condition="Ready",status="true"})',
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "sum(kube_pod_status_phase{phase=~\"Failed|Unknown\"})" }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0",
+                "spec": {
+                  "options": { "colorMode": "value" }
+                }
+              }
+            }
+          },
+          "panel-4": {
+            "kind": "Panel",
+            "spec": {
+              "id": 4,
+              "title": "Pending pods",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "options":
-                            { "colorMode": "value", "graphMode": "area" },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "sum(kube_pod_status_phase{phase=\"Pending\"})" }
                         },
-                    },
-                },
-            },
-          "panel-3":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 3,
-                  "title": "Unhealthy pods",
-                  "data":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0",
+                "spec": {
+                  "options": { "colorMode": "value" }
+                }
+              }
+            }
+          },
+          "panel-10": {
+            "kind": "Panel",
+            "spec": {
+              "id": 10,
+              "title": "CPU usage by node",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum(kube_pod_status_phase{phase=~"Failed|Unknown"})',
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+                            "legendFormat": "{{instance}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": {
+                    "defaults": { "unit": "percent", "min": 0, "max": 100 }
+                  }
+                }
+              }
+            }
+          },
+          "panel-11": {
+            "kind": "Panel",
+            "spec": {
+              "id": 11,
+              "title": "Memory usage by node",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                      "spec": { "options": { "colorMode": "value" } },
-                    },
-                },
-            },
-          "panel-4":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 4,
-                  "title": "Pending pods",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum(kube_pod_status_phase{phase="Pending"})',
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "100 * (1 - (max by (instance) (node_memory_MemAvailable_bytes) / max by (instance) (node_memory_MemTotal_bytes)))",
+                            "legendFormat": "{{instance}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": {
+                    "defaults": { "unit": "percent", "min": 0, "max": 100 }
+                  }
+                }
+              }
+            }
+          },
+          "panel-12": {
+            "kind": "Panel",
+            "spec": {
+              "id": 12,
+              "title": "Root filesystem usage",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                      "spec": { "options": { "colorMode": "value" } },
-                    },
-                },
-            },
-          "panel-10":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 10,
-                  "title": "CPU usage by node",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": '100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))',
-                                            "legendFormat": "{{instance}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "100 * (1 - (max by (instance, mountpoint) (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs\",mountpoint!~\"/run/k3s/containerd/.*|/var/lib/kubelet/.*\"}) / max by (instance, mountpoint) (node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|squashfs\",mountpoint!~\"/run/k3s/containerd/.*|/var/lib/kubelet/.*\"})))",
+                            "legendFormat": "{{instance}}:{{mountpoint}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": {
+                    "defaults": { "unit": "percent", "min": 0, "max": 100 }
+                  }
+                }
+              }
+            }
+          },
+          "panel-13": {
+            "kind": "Panel",
+            "spec": {
+              "id": 13,
+              "title": "Network receive / transmit",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "fieldConfig":
-                            {
-                              "defaults":
-                                { "unit": "percent", "min": 0, "max": 100 },
-                            },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by(instance) (rate(node_network_receive_bytes_total{device!=\"lo\"}[5m]))",
+                            "legendFormat": "{{instance}} RX"
+                          }
                         },
+                        "refId": "A"
+                      }
                     },
-                },
-            },
-          "panel-11":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 11,
-                  "title": "Memory usage by node",
-                  "data":
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "100 * (1 - (max by (instance) (node_memory_MemAvailable_bytes) / max by (instance) (node_memory_MemTotal_bytes)))",
-                                            "legendFormat": "{{instance}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by(instance) (rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m]))",
+                            "legendFormat": "{{instance}} TX"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "B"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "Bps" } }
+                }
+              }
+            }
+          },
+          "panel-20": {
+            "kind": "Panel",
+            "spec": {
+              "id": 20,
+              "title": "Pod restarts",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "fieldConfig":
-                            {
-                              "defaults":
-                                { "unit": "percent", "min": 0, "max": 100 },
-                            },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by(namespace,pod) (increase(kube_pod_container_status_restarts_total[1h])) > 0",
+                            "legendFormat": "{{namespace}} / {{pod}}"
+                          }
                         },
-                    },
-                },
-            },
-          "panel-12":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 12,
-                  "title": "Root filesystem usage",
-                  "data":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "piechart",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-21": {
+            "kind": "Panel",
+            "spec": {
+              "id": 21,
+              "title": "Pods not ready (excluding completed jobs)",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": '100 * (1 - (max by (instance, mountpoint) (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!~"/run/k3s/containerd/.*|/var/lib/kubelet/.*"}) / max by (instance, mountpoint) (node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!~"/run/k3s/containerd/.*|/var/lib/kubelet/.*"})))',
-                                            "legendFormat": "{{instance}}:{{mountpoint}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "kube_pod_status_ready{condition=\"false\"} == 1 and on(pod, namespace) kube_pod_status_phase{phase=~\"Pending|Running|Failed\"} == 1",
+                            "format": "table",
+                            "instant": true
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-22": {
+            "kind": "Panel",
+            "spec": {
+              "id": 22,
+              "title": "Container CPU",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "fieldConfig":
-                            {
-                              "defaults":
-                                { "unit": "percent", "min": 0, "max": 100 },
-                            },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by(namespace,pod) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\"}[5m]))",
+                            "legendFormat": "{{namespace}} / {{pod}}"
+                          }
                         },
-                    },
-                },
-            },
-          "panel-13":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 13,
-                  "title": "Network receive / transmit",
-                  "data":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "cores" } }
+                }
+              }
+            }
+          },
+          "panel-23": {
+            "kind": "Panel",
+            "spec": {
+              "id": 23,
+              "title": "Container memory",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum by(instance) (rate(node_network_receive_bytes_total{device!="lo"}[5m]))',
-                                            "legendFormat": "{{instance}} RX",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum by(instance) (rate(node_network_transmit_bytes_total{device!="lo"}[5m]))',
-                                            "legendFormat": "{{instance}} TX",
-                                          },
-                                      },
-                                    "refId": "B",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by(namespace,pod) (container_memory_working_set_bytes{container!=\"\",container!=\"POD\"})",
+                            "legendFormat": "{{namespace}} / {{pod}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "bytes" } }
+                }
+              }
+            }
+          },
+          "panel-24": {
+            "kind": "Panel",
+            "spec": {
+              "id": 24,
+              "title": "PersistentVolumeClaim (PVC) Storage Usage",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "Bps" } } },
-                    },
-                },
-            },
-          "panel-20":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 20,
-                  "title": "Pod restarts",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "sum by(namespace,pod) (increase(kube_pod_container_status_restarts_total[1h])) > 0",
-                                            "legendFormat": "{{namespace}} / {{pod}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes",
+                            "legendFormat": "{{namespace}} / {{persistentvolumeclaim}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": {
+                    "defaults": { "unit": "percent", "min": 0, "max": 100 }
+                  }
+                }
+              }
+            }
+          },
+          "panel-30": {
+            "kind": "Panel",
+            "spec": {
+              "id": 30,
+              "title": "Longhorn disks not ready",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "piechart",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-21":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 21,
-                  "title": "Pods not ready (excluding completed jobs)",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'kube_pod_status_ready{condition="false"} == 1 and on(pod, namespace) kube_pod_status_phase{phase=~"Pending|Running|Failed"} == 1',
-                                            "format": "table",
-                                            "instant": true,
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "count(longhorn_disk_status{condition=\"ready\"} == 0)" }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-31": {
+            "kind": "Panel",
+            "spec": {
+              "id": 31,
+              "title": "Unschedulable disks",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "table",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-22":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 22,
-                  "title": "Container CPU",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum by(namespace,pod) (rate(container_cpu_usage_seconds_total{container!="",container!="POD"}[5m]))',
-                                            "legendFormat": "{{namespace}} / {{pod}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "count(longhorn_disk_status{condition=\"schedulable\"} == 0)" }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-32": {
+            "kind": "Panel",
+            "spec": {
+              "id": 32,
+              "title": "Longhorn disk usage",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "cores" } } },
-                    },
-                },
-            },
-          "panel-23":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 23,
-                  "title": "Container memory",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum by(namespace,pod) (container_memory_working_set_bytes{container!="",container!="POD"})',
-                                            "legendFormat": "{{namespace}} / {{pod}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "100 * longhorn_disk_usage_bytes / longhorn_disk_capacity_bytes",
+                            "legendFormat": "{{node}} / {{disk}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": {
+                    "defaults": { "unit": "percent", "min": 0, "max": 100 }
+                  }
+                }
+              }
+            }
+          },
+          "panel-33": {
+            "kind": "Panel",
+            "spec": {
+              "id": 33,
+              "title": "Longhorn disk status",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "bytes" } } },
-                    },
-                },
-            },
-          "panel-24":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 24,
-                  "title": "PersistentVolumeClaim (PVC) Storage Usage",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes",
-                                            "legendFormat": "{{namespace}} / {{persistentvolumeclaim}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "longhorn_disk_status", "format": "table", "instant": true }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-34": {
+            "kind": "Panel",
+            "spec": {
+              "id": 34,
+              "title": "Longhorn volume state",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "fieldConfig":
-                            {
-                              "defaults":
-                                { "unit": "percent", "min": 0, "max": 100 },
-                            },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "longhorn_volume_state",
+                            "legendFormat": "{{volume}} / {{state}}"
+                          }
                         },
-                    },
-                },
-            },
-          "panel-30":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 30,
-                  "title": "Longhorn disks not ready",
-                  "data":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-35": {
+            "kind": "Panel",
+            "spec": {
+              "id": 35,
+              "title": "Longhorn engine state",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'count(longhorn_disk_status{condition="ready"} == 0)',
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "longhorn_engine_state",
+                            "legendFormat": "{{volume}} / {{node}} / {{state}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-40": {
+            "kind": "Panel",
+            "spec": {
+              "id": 40,
+              "title": "Traefik requests",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-31":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 31,
-                  "title": "Unschedulable disks",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'count(longhorn_disk_status{condition="schedulable"} == 0)',
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
+                            "legendFormat": "{{entrypoint}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "reqps" } }
+                }
+              }
+            }
+          },
+          "panel-41": {
+            "kind": "Panel",
+            "spec": {
+              "id": 41,
+              "title": "Traefik 4xx / 5xx",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-32":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 32,
-                  "title": "Longhorn disk usage",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "100 * longhorn_disk_usage_bytes / longhorn_disk_capacity_bytes",
-                                            "legendFormat": "{{node}} / {{disk}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"4..\"}[5m])) by (entrypoint)",
+                            "legendFormat": "{{entrypoint}} 4xx"
+                          }
                         },
+                        "refId": "A"
+                      }
                     },
-                  "vizConfig":
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        {
-                          "fieldConfig":
-                            {
-                              "defaults":
-                                { "unit": "percent", "min": 0, "max": 100 },
-                            },
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[5m])) by (entrypoint)",
+                            "legendFormat": "{{entrypoint}} 5xx"
+                          }
                         },
-                    },
-                },
-            },
-          "panel-33":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 33,
-                  "title": "Longhorn disk status",
-                  "data":
+                        "refId": "B"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "reqps" } }
+                }
+              }
+            }
+          },
+          "panel-42": {
+            "kind": "Panel",
+            "spec": {
+              "id": 42,
+              "title": "Traefik service response duration",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "longhorn_disk_status",
-                                            "format": "table",
-                                            "instant": true,
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "histogram_quantile(0.95, sum by(le,service) (rate(traefik_service_request_duration_seconds_bucket[5m])))",
+                            "legendFormat": "{{service}} p95"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "s" } }
+                }
+              }
+            }
+          },
+          "panel-50": {
+            "kind": "Panel",
+            "spec": {
+              "id": 50,
+              "title": "Prometheus scrape health",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "table",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-34":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 34,
-                  "title": "Longhorn volume state",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "longhorn_volume_state",
-                                            "legendFormat": "{{volume}} / {{state}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "up",
+                            "legendFormat": "{{job}} / {{instance}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-51": {
+            "kind": "Panel",
+            "spec": {
+              "id": 51,
+              "title": "Failed scrapes",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-35":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 35,
-                  "title": "Longhorn engine state",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "longhorn_engine_state",
-                                            "legendFormat": "{{volume}} / {{node}} / {{state}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": { "expr": "count(up == 0)" }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-52": {
+            "kind": "Panel",
+            "spec": {
+              "id": 52,
+              "title": "Prometheus TSDB samples",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-40":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 40,
-                  "title": "Traefik requests",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
-                                            "legendFormat": "{{entrypoint}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "rate(prometheus_tsdb_head_samples_appended_total[5m])",
+                            "legendFormat": "Samples/sec"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-53": {
+            "kind": "Panel",
+            "spec": {
+              "id": 53,
+              "title": "Kured reboot required",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "reqps" } } },
-                    },
-                },
-            },
-          "panel-41":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 41,
-                  "title": "Traefik 4xx / 5xx",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum(rate(traefik_entrypoint_requests_total{code=~"4.."}[5m])) by (entrypoint)',
-                                            "legendFormat": "{{entrypoint}} 4xx",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": 'sum(rate(traefik_entrypoint_requests_total{code=~"5.."}[5m])) by (entrypoint)',
-                                            "legendFormat": "{{entrypoint}} 5xx",
-                                          },
-                                      },
-                                    "refId": "B",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "kured_reboot_required",
+                            "legendFormat": "{{instance}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-54": {
+            "kind": "Panel",
+            "spec": {
+              "id": 54,
+              "title": "Total reboot required",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "reqps" } } },
-                    },
-                },
-            },
-          "panel-42":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 42,
-                  "title": "Traefik service response duration",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "histogram_quantile(0.95, sum by(le,service) (rate(traefik_service_request_duration_seconds_bucket[5m])))",
-                                            "legendFormat": "{{service}} p95",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum(kured_reboot_required)",
+                            "legendFormat": "__auto"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-55": {
+            "kind": "Panel",
+            "spec": {
+              "id": 55,
+              "title": "Reboot in progress",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "s" } } },
-                    },
-                },
-            },
-          "panel-50":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 50,
-                  "title": "Prometheus scrape health",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "up",
-                                            "legendFormat": "{{job}} / {{instance}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "kured_reboot_in_progress",
+                            "legendFormat": "__auto"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-60": {
+            "kind": "Panel",
+            "spec": {
+              "id": 60,
+              "title": "CNPG Database Replication Lag",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-51":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 51,
-                  "title": "Failed scrapes",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec": { "expr": "count(up == 0)" },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "cnpg_pg_replication_lag",
+                            "legendFormat": "{{pod}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "s" } }
+                }
+              }
+            }
+          },
+          "panel-61": {
+            "kind": "Panel",
+            "spec": {
+              "id": 61,
+              "title": "Database Active Connections",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-52":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 52,
-                  "title": "Prometheus TSDB samples",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "rate(prometheus_tsdb_head_samples_appended_total[5m])",
-                                            "legendFormat": "Samples/sec",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "sum by (datname) (cnpg_pg_stat_activity_count)",
+                            "legendFormat": "{{datname}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "short" } }
+                }
+              }
+            }
+          },
+          "panel-62": {
+            "kind": "Panel",
+            "spec": {
+              "id": 62,
+              "title": "PostgreSQL Database Footprint",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-53":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 53,
-                  "title": "Kured reboot required",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "kured_reboot_required",
-                                            "legendFormat": "{{instance}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "cnpg_database_size_bytes",
+                            "legendFormat": "{{datname}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "bytes" } }
+                }
+              }
+            }
+          },
+          "panel-70": {
+            "kind": "Panel",
+            "spec": {
+              "id": 70,
+              "title": "Borg Backup Success Status",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-54":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 54,
-                  "title": "Total reboot required",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "sum(kured_reboot_required)",
-                                            "legendFormat": "__auto",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "backup_status",
+                            "legendFormat": "{{job}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-71": {
+            "kind": "Panel",
+            "spec": {
+              "id": 71,
+              "title": "Hours Since Last Successful Backup",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-55":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 55,
-                  "title": "Reboot in progress",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "kured_reboot_in_progress",
-                                            "legendFormat": "__auto",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "(time() - backup_last_success_timestamp_seconds) / 3600",
+                            "legendFormat": "{{job}}"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "h" } }
+                }
+              }
+            }
+          },
+          "panel-72": {
+            "kind": "Panel",
+            "spec": {
+              "id": 72,
+              "title": "Borg Backup Duration & Dump Size",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-60":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 60,
-                  "title": "CNPG Database Replication Lag",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "cnpg_pg_replication_lag",
-                                            "legendFormat": "{{pod}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "backup_duration_seconds",
+                            "legendFormat": "{{job}} duration"
+                          }
                         },
+                        "refId": "A"
+                      }
                     },
-                  "vizConfig":
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "s" } } },
-                    },
-                },
-            },
-          "panel-61":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 61,
-                  "title": "Database Active Connections",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "sum by (datname) (cnpg_pg_stat_activity_count)",
-                                            "legendFormat": "{{datname}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "backup_dump_bytes",
+                            "legendFormat": "{{job}} dump size"
+                          }
                         },
-                    },
-                  "vizConfig":
+                        "refId": "B"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0"
+              }
+            }
+          },
+          "panel-80": {
+            "kind": "Panel",
+            "spec": {
+              "id": 80,
+              "title": "TLS Certificate Expiration (Days Remaining)",
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
                     {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "short" } } },
-                    },
-                },
-            },
-          "panel-62":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 62,
-                  "title": "PostgreSQL Database Footprint",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "cnpg_database_size_bytes",
-                                            "legendFormat": "{{datname}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": { "name": "${DS_PROMETHEUS}" },
+                          "spec": {
+                            "expr": "(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
+                            "legendFormat": "{{name}} ({{namespace}})"
+                          }
                         },
-                    },
-                  "vizConfig":
-                    {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "bytes" } } },
-                    },
-                },
-            },
-          "panel-70":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 70,
-                  "title": "Borg Backup Success Status",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "backup_status",
-                                            "legendFormat": "{{job}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
-                        },
-                    },
-                  "vizConfig":
-                    {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-71":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 71,
-                  "title": "Hours Since Last Successful Backup",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "(time() - backup_last_success_timestamp_seconds) / 3600",
-                                            "legendFormat": "{{job}}",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
-                        },
-                    },
-                  "vizConfig":
-                    {
-                      "kind": "VizConfig",
-                      "group": "stat",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "h" } } },
-                    },
-                },
-            },
-          "panel-72":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 72,
-                  "title": "Borg Backup Duration & Dump Size",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "backup_duration_seconds",
-                                            "legendFormat": "{{job}} duration",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "backup_dump_bytes",
-                                            "legendFormat": "{{job}} dump size",
-                                          },
-                                      },
-                                    "refId": "B",
-                                  },
-                              },
-                            ],
-                        },
-                    },
-                  "vizConfig":
-                    {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                    },
-                },
-            },
-          "panel-80":
-            {
-              "kind": "Panel",
-              "spec":
-                {
-                  "id": 80,
-                  "title": "TLS Certificate Expiration (Days Remaining)",
-                  "data":
-                    {
-                      "kind": "QueryGroup",
-                      "spec":
-                        {
-                          "queries":
-                            [
-                              {
-                                "kind": "PanelQuery",
-                                "spec":
-                                  {
-                                    "query":
-                                      {
-                                        "kind": "DataQuery",
-                                        "group": "prometheus",
-                                        "version": "v0",
-                                        "datasource":
-                                          { "name": "${DS_PROMETHEUS}" },
-                                        "spec":
-                                          {
-                                            "expr": "(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
-                                            "legendFormat": "{{name}} ({{namespace}})",
-                                          },
-                                      },
-                                    "refId": "A",
-                                  },
-                              },
-                            ],
-                        },
-                    },
-                  "vizConfig":
-                    {
-                      "kind": "VizConfig",
-                      "group": "timeseries",
-                      "version": "13.2.0",
-                      "spec":
-                        { "fieldConfig": { "defaults": { "unit": "d" } } },
-                    },
-                },
-            },
+                        "refId": "A"
+                      }
+                    }
+                  ]
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "timeseries",
+                "version": "13.2.0",
+                "spec": {
+                  "fieldConfig": { "defaults": { "unit": "d" } }
+                }
+              }
+            }
+          }
         },
-      "layout":
-        {
+        "layout": {
           "kind": "RowsLayout",
-          "spec":
-            {
-              "rows":
-                [
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Cluster overview",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-1",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 6,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-2",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-3",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 18,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-4",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Node resources",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-10",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-11",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 8,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-12",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 8,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-13",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 16,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-53",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 16,
-                                          "width": 4,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-54",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 16,
-                                          "y": 16,
-                                          "width": 4,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-55",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Kubernetes workloads & PVC Storage",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-20",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-21",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 8,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-22",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 8,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-23",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 16,
-                                          "width": 24,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-24",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Database Health (CloudNativePG)",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 8,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-60",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 8,
-                                          "y": 0,
-                                          "width": 8,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-61",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 16,
-                                          "y": 0,
-                                          "width": 8,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-62",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Host & DB Backups (Borg / Pushgateway)",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-70",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 6,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-71",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-72",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Longhorn",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-30",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 6,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-31",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-33",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 4,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-32",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 8,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-35",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 12,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-34",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Traefik Ingress",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-40",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-41",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 8,
-                                          "width": 24,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-42",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                  {
-                    "kind": "RowsLayoutRow",
-                    "spec":
-                      {
-                        "title": "Monitoring & Security Health",
-                        "collapse": false,
-                        "layout":
-                          {
-                            "kind": "GridLayout",
-                            "spec":
-                              {
-                                "items":
-                                  [
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 0,
-                                          "width": 12,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-50",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 12,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 4,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-51",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 18,
-                                          "y": 0,
-                                          "width": 6,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-52",
-                                            },
-                                        },
-                                    },
-                                    {
-                                      "kind": "GridLayoutItem",
-                                      "spec":
-                                        {
-                                          "x": 0,
-                                          "y": 8,
-                                          "width": 24,
-                                          "height": 8,
-                                          "element":
-                                            {
-                                              "kind": "ElementReference",
-                                              "name": "panel-80",
-                                            },
-                                        },
-                                    },
-                                  ],
-                              },
-                          },
-                      },
-                  },
-                ],
-            },
+          "spec": {
+            "rows": [
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Cluster overview",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-1" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 6, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-2" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-3" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 18, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-4" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Node resources",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-10" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-11" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 8, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-12" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 8, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-13" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 16, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-53" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 16, "width": 4, "height": 8, "element": { "kind": "ElementReference", "name": "panel-54" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 16, "y": 16, "width": 4, "height": 8, "element": { "kind": "ElementReference", "name": "panel-55" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Kubernetes workloads & PVC Storage",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-20" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-21" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 8, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-22" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 8, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-23" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 16, "width": 24, "height": 8, "element": { "kind": "ElementReference", "name": "panel-24" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Database Health (CloudNativePG)",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 8, "height": 8, "element": { "kind": "ElementReference", "name": "panel-60" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 8, "y": 0, "width": 8, "height": 8, "element": { "kind": "ElementReference", "name": "panel-61" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 16, "y": 0, "width": 8, "height": 8, "element": { "kind": "ElementReference", "name": "panel-62" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Host & DB Backups (Borg / Pushgateway)",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 6, "height": 8, "element": { "kind": "ElementReference", "name": "panel-70" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 6, "y": 0, "width": 6, "height": 8, "element": { "kind": "ElementReference", "name": "panel-71" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-72" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Longhorn",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-30" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 6, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-31" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-33" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 4, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-32" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 8, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-35" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 12, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-34" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Traefik Ingress",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-40" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-41" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 8, "width": 24, "height": 8, "element": { "kind": "ElementReference", "name": "panel-42" } } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Monitoring & Security Health",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 0, "width": 12, "height": 8, "element": { "kind": "ElementReference", "name": "panel-50" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 12, "y": 0, "width": 6, "height": 4, "element": { "kind": "ElementReference", "name": "panel-51" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 18, "y": 0, "width": 6, "height": 8, "element": { "kind": "ElementReference", "name": "panel-52" } } },
+                        { "kind": "GridLayoutItem", "spec": { "x": 0, "y": 8, "width": 24, "height": 8, "element": { "kind": "ElementReference", "name": "panel-80" } } }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
         },
-      "links": [],
-      "liveNow": false,
-      "preload": false,
-      "tags":
-        ["k3s", "kubernetes", "longhorn", "traefik", "cnpg", "borg", "homelab"],
-      "timeSettings":
-        {
+        "links": [],
+        "liveNow": false,
+        "preload": false,
+        "tags": ["k3s", "kubernetes", "longhorn", "traefik", "cnpg", "borg", "homelab"],
+        "timeSettings": {
           "timezone": "browser",
           "from": "now-6h",
           "to": "now",
-          "autoRefresh": "30s",
+          "autoRefresh": "30s"
         },
-      "variables":
-        [
+        "variables": [
           {
             "kind": "DatasourceVariable",
-            "spec":
-              {
-                "name": "DS_PROMETHEUS",
-                "pluginId": "prometheus",
-                "refresh": "onDashboardLoad",
-                "current": { "text": "Prometheus", "value": "Prometheus" },
-                "allowCustomValue": true,
-              },
-          },
-        ],
-    },
-}
+            "spec": {
+              "name": "DS_PROMETHEUS",
+              "pluginId": "prometheus",
+              "refresh": "onDashboardLoad",
+              "current": { "text": "Prometheus", "value": "Prometheus" },
+              "allowCustomValue": true
+            }
+          }
+        ]
+      }
+    }
