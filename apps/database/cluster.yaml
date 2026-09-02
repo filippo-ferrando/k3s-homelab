@@ -16,6 +16,7 @@ spec:
   affinity:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
 
   # 1. Storage Configuration (Uses Longhorn automatically)
   storage:
