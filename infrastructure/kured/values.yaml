@@ -4,7 +4,7 @@ configuration:
   startTime: "01:00"
   endTime: "05:00"
   rebootDays: [mon, tue, wed, thu, fri, sat, sun]
-  period: 5m
+  period: 1h
 
   # Drain settings tuned for Longhorn volume handoffs & CNPG database failovers
   drainGracePeriod: 1200
