@@ -5,6 +5,8 @@ defaultSettings:
   defaultReplicaCount: 3
   backupbopsCleanupWaitInterval: 1440
   nodeDrainPolicy: "always-allow"
+  autoDeletePodWhenVolumeDetachedUnexpectedly: true
+  nodeDownPodDeletionPolicy: "delete-both-statefulset-and-deployment-pod"
 
 preUpgradeChecker:
   jobEnabled: false
