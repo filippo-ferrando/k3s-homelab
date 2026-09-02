@@ -14,9 +14,7 @@ spec:
     metadata:
       labels:
         app: librephoto-proxy
-    spec:
-      securityContext:
-        fsGroup: 1000
+    spec: 
       affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -30,10 +28,6 @@ spec:
       containers:
         - name: proxy
           image: reallibrephotos/librephotos-proxy:latest
-          command:
-            - /bin/sh
-            - -c
-            - "sed -i 's/user nginx;/user 1000 1000;/' /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
           ports:
             - containerPort: 80
               name: http
