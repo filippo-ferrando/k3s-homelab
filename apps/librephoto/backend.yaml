@@ -14,10 +14,10 @@ spec:
     metadata:
       labels:
         app: librephoto-backend
-    spec: 
+    spec:
       containers:
         - name: backend
-          image: reallibrephotos/librephotos:latest
+          image: reallibrephotos/librephotos:1.1.0
           env:
             - name: BASE_LOGS
               value: "/tmp/logs"

@@ -14,7 +14,7 @@ spec:
     metadata:
       labels:
         app: librephoto-proxy
-    spec: 
+    spec:
       affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -27,7 +27,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: proxy
-          image: reallibrephotos/librephotos-proxy:latest
+          image: reallibrephotos/librephotos-proxy:1.1.0
           ports:
             - containerPort: 80
               name: http
