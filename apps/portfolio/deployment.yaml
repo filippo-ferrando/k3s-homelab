@@ -17,8 +17,15 @@ spec:
     spec:
       containers:
         - name: portfolio
-          image: git.fferrando.cc/rdfilippo/portfolio:latest
+          image: git.fferrando.cc/rdfilippo/portfolio:20260903-1644
           imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 80
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: "0.5"
+            requests:
+              memory: 256Mi
+              cpu: "250m"
