@@ -20,10 +20,7 @@
         "codeberg.org/forgejo/forgejo",
         "codeberg.org/forgejo/forgejo:"
       ],
-      "overridePackageName": "forgejo/forgejo",
-      "registryUrls": [
-        "https://data.forgejo.org"
-      ]
+      "overridePackageName": "data.forgejo.org/forgejo/forgejo"
     },
     {
       "description": "Group patch and minor updates together to reduce PR clutter",
