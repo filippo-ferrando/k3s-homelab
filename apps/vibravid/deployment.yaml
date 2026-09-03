@@ -26,7 +26,7 @@ spec:
               value: "download.internal.fferrando.cc"
             - name: CSRF_TRUSTED_ORIGINS
               value: "https://download.internal.fferrando.cc"
-            - name: VIBRAVID_VIDEO_DIR
+            - name: VIBRAVID_OUTPUT_ROOT
               value: "/downloads"
             - name: VIBRAVID_CONFIG_DIR
               value: "/config"
@@ -40,10 +40,6 @@ spec:
               subPath: TV
             - name: config
               mountPath: /config
-            - name: vibravid-config-file
-              mountPath: /config/config.json
-              subPath: config.json
-              readOnly: true
       volumes:
         - name: media
           persistentVolumeClaim:
@@ -51,6 +47,3 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: vibravid-config
-        - name: vibravid-config-file
-          configMap:
-            name: vibravid-config-json
