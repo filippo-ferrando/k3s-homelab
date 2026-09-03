@@ -15,35 +15,6 @@ spec:
       labels:
         app: vibravid
     spec:
-      initContainers:
-        - name: configure-vibravid
-          image: alpine:latest
-          command:
-            - sh
-            - -c
-            - |
-              # Install jq for JSON parsing
-              apk add --no-cache jq
-
-              # If config.json doesn't exist yet, create a valid empty skeleton
-              if [ ! -f /config/config.json ]; then
-                echo '{"OUTPUT": {}}' > /config/config.json
-              fi
-
-              # Use jq to update the specific keys inside the OUTPUT block
-              jq '.OUTPUT.root_path = "downloads" | 
-                  .OUTPUT.movie_folder_name = "Film" | 
-                  .OUTPUT.serie_folder_name = "Serie" | 
-                  .OUTPUT.anime_folder_name = "Serie"' \
-                  /config/config.json > /config/config.tmp.json
-
-              # Replace the old config with the updated one
-              mv /config/config.tmp.json /config/config.json
-
-              echo "config.json OUTPUT block successfully patched."
-          volumeMounts:
-            - name: config
-              mountPath: /config
       containers:
         - name: vibravid
           image: ghcr.io/astraelabs/vibravid:latest
@@ -69,6 +40,10 @@ spec:
               subPath: TV
             - name: config
               mountPath: /config
+            - name: vibravid-config-file
+              mountPath: /config/config.json
+              subPath: config.json
+              readOnly: true
       volumes:
         - name: media
           persistentVolumeClaim:
@@ -76,3 +51,6 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: vibravid-config
+        - name: vibravid-config-file
+          configMap:
+            name: vibravid-config-json
