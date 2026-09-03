@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: descheduler
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    chart: descheduler
+    repoURL: https://kubernetes-sigs.github.io/descheduler/
+    targetRevision: 0.31.0
+    helm:
+      values: |
+        kind: CronJob
+        schedule: "0 */2 * * *" # Runs every 12 hours
+        deschedulerPolicy:
+          strategies:
+            RemoveDuplicates:
+              enabled: true
+            RemovePodsViolatingInterPodAntiAffinity:
+              enabled: true
+            LowNodeUtilization:
+              enabled: true
+              params:
+                nodeResourceUtilizationThresholds:
+                  thresholds:
+                    cpu: 20
+                    memory: 20
+                    pods: 20
+                  targetThresholds:
+                    cpu: 50
+                    memory: 50
+                    pods: 50
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
