@@ -19,7 +19,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:beta
+          image: gtstef/filebrowser:2.0.4-beta
           ports:
             - name: http
               containerPort: 80
@@ -33,6 +33,13 @@ spec:
               mountPath: /media
             - name: fb-data
               mountPath: /data
+          resources:
+            limits:
+              memory: 5G
+              cpu: "2"
+            requests:
+              memory: 512Mi
+              cpu: "0.5"
           readinessProbe:
             httpGet:
               path: /healthcheck
