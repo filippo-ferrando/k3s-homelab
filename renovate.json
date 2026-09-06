@@ -23,6 +23,12 @@
       "overridePackageName": "data.forgejo.org/forgejo/forgejo"
     },
     {
+      "matchPackageNames": [
+        "git.fferrando.cc/rdfilippo/portfolio"
+      ],
+      "versioning": "regex:^(?<major>\\d{8})-(?<minor>\\d{4})$"
+    },
+    {
       "description": "Group patch and minor updates together to reduce PR clutter",
       "matchUpdateTypes": [
         "minor",
