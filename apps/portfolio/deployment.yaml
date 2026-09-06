@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: portfolio
-          image: git.fferrando.cc/rdfilippo/portfolio:20260906-1038
+          image: git.fferrando.cc/rdfilippo/portfolio:20260906-1332
           imagePullPolicy: Always
           ports:
             - name: http
