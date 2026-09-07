@@ -11,6 +11,11 @@ configuration:
   drainTimeout: "20m"
   forceReboot: false
 
+  # Longhorn's instance-manager / CSI-sidecar PDBs can get stuck at 0 allowed
+  # disruptions for the whole drain window (known Longhorn timing issue,
+  # longhorn/longhorn#5910)
+  drainPodSelector: "longhorn.io/component!=instance-manager,app notin (csi-attacher,csi-provisioner,csi-resizer,csi-snapshotter,longhorn-driver-deployer)"
+
   # Prevent deadlocks if a node hangs mid-reboot
   lockTtl: 1h0m0s
 
