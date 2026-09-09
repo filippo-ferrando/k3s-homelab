@@ -19,7 +19,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:2.0.4-beta
+          image: gtstef/filebrowser:2.0.5-beta
           ports:
             - name: http
               containerPort: 80
