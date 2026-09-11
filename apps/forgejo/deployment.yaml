@@ -51,6 +51,27 @@ spec:
                 secretKeyRef:
                   name: forgejo-db-credentials
                   key: password
+            # Mailer settings
+            - name: FORGEJO__mailer__ENABLED
+              value: "true"
+            - name: FORGEJO__mailer__FROM
+              value: "git@fferrando.cc"
+            - name: FORGEJO__mailer__PROTOCOL
+              value: "smtp+starttls"
+            - name: FORGEJO__mailer__SMTP_ADDR
+              value: "smtp.resend.com"
+            - name: FORGEJO__mailer__SMTP_PORT
+              value: "587"
+            - name: FORGEJO__mailer__USER
+              valueFrom:
+                secretKeyRef:
+                  name: forgejo-resend-credentials
+                  key: smtp-user
+            - name: FORGEJO__mailer__PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: forgejo-resend-credentials
+                  key: smtp-password
           resources:
             limits:
               memory: 2Gi
