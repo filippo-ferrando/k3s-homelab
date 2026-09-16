@@ -72,6 +72,8 @@ spec:
                 secretKeyRef:
                   name: forgejo-resend-credentials
                   key: smtp-password
+            - name: FORGEJO__actions__DEFAULT_ACTIONS_URL
+              value: https://github.com
           resources:
             limits:
               memory: 2Gi
