@@ -1,6 +1,6 @@
 prometheus:
   prometheusSpec:
-    retention: 5d
+    retention: 3d
     retentionSize: 3GiB
     serviceMonitorSelectorNilUsesHelmValues: false
     serviceMonitorSelector: {}
@@ -21,7 +21,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 5Gi
+              storage: 7Gi
 
 prometheus-node-exporter:
   securityContext:
