@@ -1,0 +1,111 @@
+---
+# EMERGENCY per-node rollback to flannel. Only a clean operation while casper
+# is the ONLY node migrated so far -- mixed flannel/Cilium across multiple
+# nodes is not a supported state (see README.md "Rollback"). No data-plane
+# risk (Longhorn/etcd untouched), but past the casper stage, "rollback" really
+# means "finish migrating forward", not this playbook.
+#
+# Usage:
+#   ansible-playbook -i ../ansible/inventory.ini 99_rollback_node.yml \
+#     -e target_node=casper.fferrando.homelab
+
+- name: Cordon target node before rollback
+  hosts: "{{ groups['k3s_servers'][0] }}"
+  become: true
+  tasks:
+    - name: Cordon target node
+      ansible.builtin.command: "/usr/local/bin/k3s kubectl cordon {{ target_node }}"
+      changed_when: true
+
+    - name: Read node-token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token_raw
+      when: target_node != groups['k3s_servers'][0]
+
+    - name: Store token as fact
+      ansible.builtin.set_fact:
+        k3s_token: "{{ node_token_raw['content'] | b64decode | trim }}"
+      when: target_node != groups['k3s_servers'][0]
+
+- name: Stop k3s, clear Cilium CNI state, reinstall with original flannel flags
+  hosts: "{{ target_node }}"
+  become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] }}"
+    k3s_token: "{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] | default('') }}"
+    is_first_server: "{{ inventory_hostname == groups['k3s_servers'][0] }}"
+    is_agent: "{{ inventory_hostname in groups['k3s_agents'] }}"
+  tasks:
+    - name: Stop k3s service (server nodes)
+      ansible.builtin.systemd_service:
+        name: k3s
+        state: stopped
+      when: not is_agent
+
+    - name: Stop k3s-agent service (agent nodes)
+      ansible.builtin.systemd_service:
+        name: k3s-agent
+        state: stopped
+      when: is_agent
+
+    - name: Remove stale CNI runtime state
+      ansible.builtin.file:
+        path: /var/lib/cni
+        state: absent
+
+    - name: Remove stale CNI conf files
+      ansible.builtin.shell: rm -f /etc/cni/net.d/*
+      args:
+        warn: false
+      changed_when: true
+
+    - name: Reinstall first server with original flannel flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - server \
+          --cluster-init \
+          --selinux \
+          --prefer-bundled-bin \
+          --flannel-iface={{ ansible_default_ipv4.interface }} \
+          --node-ip={{ ansible_host }} \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      when: is_first_server and not is_agent
+
+    - name: Reinstall joining server with original flannel flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" sh -s - server \
+          --server "https://{{ k3s_primary_ip }}:6443" \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      when: not is_first_server and not is_agent
+
+    - name: Reinstall agent with original flannel flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_URL="https://{{ k3s_primary_ip }}:6443" K3S_TOKEN="{{ k3s_token }}" sh -s - agent \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables
+      when: is_agent
+
+- name: Wait for node ready and uncordon
+  hosts: "{{ groups['k3s_servers'][0] }}"
+  become: true
+  tasks:
+    - name: Wait for target node to report Ready
+      ansible.builtin.command: >-
+        /usr/local/bin/k3s kubectl get node {{ target_node }}
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: node_ready
+      until: node_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Uncordon target node
+      ansible.builtin.command: "/usr/local/bin/k3s kubectl uncordon {{ target_node }}"
+      changed_when: true

@@ -1,0 +1,10 @@
+# Adjust the CIDR/range below to match your actual LAN allocation and avoid
+# overlapping with DHCP. At minimum it must include the Traefik LB IP captured
+# by 00_preflight.yml.
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lan-pool
+spec:
+  blocks:
+    - cidr: "192.168.10.0/24"   # narrow this to a static/reserved range if your router hands out DHCP in this /24

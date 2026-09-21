@@ -1,0 +1,47 @@
+---
+- name: Capture pre-migration facts
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Show default IPv4 interface per node
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} -> {{ ansible_default_ipv4.interface }} ({{ ansible_default_ipv4.address }})"
+
+    - name: Check k3s version
+      ansible.builtin.command: /usr/local/bin/k3s --version
+      register: k3s_version
+      changed_when: false
+
+    - name: Show k3s version
+      ansible.builtin.debug:
+        var: k3s_version.stdout_lines
+
+    - name: Check for k3s local apiserver load-balancer proxy (port 6444)
+      ansible.builtin.command: ss -tlnp
+      register: ss_out
+      changed_when: false
+
+    - name: Report whether 6444 is listening
+      ansible.builtin.debug:
+        msg: >-
+          {{ '6444 FOUND' if '6444' in ss_out.stdout
+             else '6444 NOT FOUND -- investigate before relying on k8sServiceHost=127.0.0.1 in values.yaml' }}
+
+- name: Capture current Traefik LoadBalancer IP
+  hosts: k3s_servers[0]
+  become: true
+  tasks:
+    - name: Get Traefik service external IP
+      ansible.builtin.command: >-
+        /usr/local/bin/k3s kubectl get svc -n traefik traefik
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: traefik_lb_ip
+      changed_when: false
+
+    - name: Show current Traefik LB IP -- RECORD THIS VALUE
+      ansible.builtin.debug:
+        msg: >-
+          Current Traefik LB IP: {{ traefik_lb_ip.stdout }}
+          -- this must be reflected in manifests/loadbalancer-ippool.yaml
+          and pinned via a service annotation in infrastructure/traefik/values.yaml
+          before cutover, or Traefik's IP will change.

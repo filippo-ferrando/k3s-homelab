@@ -1,0 +1,36 @@
+# PLACEHOLDER -- do not commit as-is. Reconcile against the real output of
+# `cilium install --dry-run-helm-values` (run after the manual cilium-cli
+# install on casper) before copying into infrastructure/cilium/.
+
+kubeProxyReplacement: true
+
+k8sServiceHost: 127.0.0.1
+k8sServicePort: 6444        # k3s's local per-node apiserver LB proxy -- confirmed present via 00_preflight.yml
+
+routingMode: native          # flat single-subnet LAN (192.168.10.0/24), no VXLAN encapsulation needed
+autoDirectNodeRoutes: true
+ipv4NativeRoutingCIDR: 10.42.0.0/16
+
+ipam:
+  mode: kubernetes            # delegate to k3s's existing per-node pod CIDR allocation, no CIDR change
+
+socketLB:
+  hostNamespaceOnly: true     # required so Cilium's socket LB doesn't intercept k3s's own 127.0.0.1:6444 proxy
+
+securityContext:
+  privileged: true            # SELinux mitigation -- see README.md "SELinux risk", validate on casper first
+
+l2announcements:
+  enabled: true
+
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+prometheus:
+  enabled: true
+operator:
+  prometheus:
+    enabled: true

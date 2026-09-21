@@ -1,0 +1,140 @@
+---
+# Per-node CNI migration. Run ONE node at a time, verifying fully (README.md
+# "Verification" section) before moving to the next. Order: casper -> balthazar
+# -> caelium -> magi (last). Never run this against a second k3s_servers host
+# without confirming etcd quorum health and Longhorn Robustness=Healthy first.
+#
+# Usage:
+#   ansible-playbook -i ../ansible/inventory.ini 01_migrate_node.yml \
+#     -e target_node=casper.fferrando.homelab
+#
+# Prerequisite: Cilium must already be installed cluster-wide via cilium-cli
+# (README.md "Manual step: install Cilium") before running this against the
+# FIRST node (casper). For every subsequent node this playbook just needs to
+# bring that node's kubelet back up with the right flags so Cilium's DaemonSet
+# schedules onto it.
+
+- name: Cordon and drain the target node
+  hosts: "{{ groups['k3s_servers'][0] }}"
+  become: true
+  tasks:
+    - name: Fail fast if target_node not provided
+      ansible.builtin.fail:
+        msg: "Pass -e target_node=<inventory_hostname>"
+      when: target_node is not defined
+
+    - name: Cordon target node
+      ansible.builtin.command: "/usr/local/bin/k3s kubectl cordon {{ target_node }}"
+      changed_when: true
+
+    - name: Drain target node
+      ansible.builtin.command: >-
+        /usr/local/bin/k3s kubectl drain {{ target_node }}
+        --ignore-daemonsets --delete-emptydir-data --timeout=300s
+      changed_when: true
+
+    - name: Read node-token (needed for agent / joining-server reinstall)
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token_raw
+      when: target_node != groups['k3s_servers'][0]
+
+    - name: Store token as fact
+      ansible.builtin.set_fact:
+        k3s_token: "{{ node_token_raw['content'] | b64decode | trim }}"
+      when: target_node != groups['k3s_servers'][0]
+
+- name: Stop k3s, clear old CNI state, reinstall with Cilium-ready flags
+  hosts: "{{ target_node }}"
+  become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] }}"
+    k3s_token: "{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] | default('') }}"
+    is_first_server: "{{ inventory_hostname == groups['k3s_servers'][0] }}"
+    is_agent: "{{ inventory_hostname in groups['k3s_agents'] }}"
+  tasks:
+    - name: Stop k3s service (server nodes)
+      ansible.builtin.systemd_service:
+        name: k3s
+        state: stopped
+      when: not is_agent
+
+    - name: Stop k3s-agent service (agent nodes)
+      ansible.builtin.systemd_service:
+        name: k3s-agent
+        state: stopped
+      when: is_agent
+
+    - name: Remove stale CNI runtime state
+      ansible.builtin.file:
+        path: /var/lib/cni
+        state: absent
+
+    - name: Remove stale CNI conf files
+      ansible.builtin.shell: rm -f /etc/cni/net.d/*
+      args:
+        warn: false
+      changed_when: true
+
+    - name: Reinstall as first server (cluster-init) with Cilium flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - server \
+          --cluster-init \
+          --selinux \
+          --prefer-bundled-bin \
+          --node-ip={{ ansible_host }} \
+          --flannel-backend=none \
+          --disable-network-policy \
+          --disable-kube-proxy \
+          --disable servicelb \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      when: is_first_server and not is_agent
+
+    - name: Reinstall as joining server with Cilium flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" sh -s - server \
+          --server "https://{{ k3s_primary_ip }}:6443" \
+          --selinux \
+          --prefer-bundled-bin \
+          --flannel-backend=none \
+          --disable-network-policy \
+          --disable-kube-proxy \
+          --disable servicelb \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      when: not is_first_server and not is_agent
+
+    - name: Reinstall as agent with Cilium flags
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_URL="https://{{ k3s_primary_ip }}:6443" K3S_TOKEN="{{ k3s_token }}" sh -s - agent \
+          --selinux \
+          --prefer-bundled-bin \
+          --disable-kube-proxy
+      when: is_agent
+
+- name: Wait for node ready and uncordon
+  hosts: "{{ groups['k3s_servers'][0] }}"
+  become: true
+  tasks:
+    - name: Wait for target node to report Ready
+      ansible.builtin.command: >-
+        /usr/local/bin/k3s kubectl get node {{ target_node }}
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: node_ready
+      until: node_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Uncordon target node
+      ansible.builtin.command: "/usr/local/bin/k3s kubectl uncordon {{ target_node }}"
+      changed_when: true
+
+    - name: Reminder
+      ansible.builtin.debug:
+        msg: >-
+          {{ target_node }} is back and uncordoned. Now run the Verification
+          checks in README.md before migrating the next node. For server nodes,
+          confirm Longhorn volumes report Robustness=Healthy again before
+          draining the next one.
