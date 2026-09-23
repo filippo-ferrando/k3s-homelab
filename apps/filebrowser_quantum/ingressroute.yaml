@@ -30,6 +30,9 @@ spec:
   routes:
     - match: Host(`files.fferrando.cc`)
       kind: Rule
+      middlewares:
+        - name: public-ratelimit
+          namespace: traefik
       services:
         - name: filebrowser
           port: 80
