@@ -30,3 +30,10 @@ falcosidekick:
     enabled: true
     additionalLabels:
       release: kube-prometheus-stack
+
+customRules:
+  rules-cnpg-wal-archive.yaml: |-
+    - macro: postgres_running_cnpg
+      condition: or (proc.pname=postgres and proc.cmdline startswith "sh -c -- /controller/manager wal-archive")
+      override:
+        condition: append
