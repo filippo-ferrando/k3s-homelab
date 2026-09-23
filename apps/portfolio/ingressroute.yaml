@@ -11,6 +11,9 @@ spec:
   routes:
     - match: Host(`fferrando.cc`)
       kind: Rule
+      middlewares:
+        - name: public-ratelimit
+          namespace: traefik
       services:
         - name: portfolio
           port: 80

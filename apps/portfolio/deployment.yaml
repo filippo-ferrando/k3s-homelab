@@ -15,10 +15,15 @@ spec:
       labels:
         app: portfolio
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: portfolio
           image: git.fferrando.cc/rdfilippo/portfolio:20260915-1559
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 80
