@@ -1,7 +1,12 @@
 driver:
   kind: modern_ebpf
-  modernEbpf:
-    leastPrivileged: true
+  # modernEbpf.leastPrivileged (capabilities instead of a privileged container)
+  # fails hard on AlmaLinux: SELinux's confined container_t domain blocks BPF
+  # ring-buffer map creation even with the right capabilities present -
+  # "libpman: ring buffer map type is not supported (errno 13, Permission
+  # denied)". Same failure mode reported on OpenShift for the same reason
+  # (also SELinux-enforcing by default). Left at the chart default (false,
+  # fully privileged container) instead.
 
 tolerations:
   - key: node-role.kubernetes.io/control-plane
