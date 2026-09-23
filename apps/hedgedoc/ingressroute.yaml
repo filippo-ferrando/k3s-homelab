@@ -26,6 +26,8 @@ spec:
       middlewares:
         - name: hedgedoc-headers
           namespace: hedgedoc
+        - name: public-ratelimit
+          namespace: traefik
       services:
         - name: hedgedoc
           port: 3000

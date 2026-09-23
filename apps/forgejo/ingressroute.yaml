@@ -33,6 +33,9 @@ spec:
   routes:
     - match: Host(`git.fferrando.cc`)
       kind: Rule
+      middlewares:
+        - name: public-ratelimit
+          namespace: traefik
       services:
         - name: forgejo
           port: 3000

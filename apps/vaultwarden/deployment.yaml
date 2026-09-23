@@ -17,10 +17,15 @@ spec:
       labels:
         app: vaultwarden
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: vaultwarden
           image: vaultwarden/server:1.37.3-alpine
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 80
@@ -41,6 +46,12 @@ spec:
             - name: DATABASE_URL
               value: "postgresql://$(DB_USER):$(DB_PASS)@homelab-db-rw.database.svc.cluster.local:5432/vaultwarden"
             - name: WEBSOCKET_ENABLED
+              value: "true"
+            - name: SIGNUPS_ALLOWED
+              value: "false"
+            - name: SIGNUPS_VERIFY
+              value: "true"
+            - name: INVITATIONS_ALLOWED
               value: "true"
           volumeMounts:
             - name: data

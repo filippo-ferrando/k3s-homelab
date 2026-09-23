@@ -15,9 +15,14 @@ spec:
       labels:
         app: forgejo
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: forgejo
           image: codeberg.org/forgejo/forgejo:16
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 3000
               name: http

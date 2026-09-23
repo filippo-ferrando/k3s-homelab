@@ -30,6 +30,9 @@ spec:
   routes:
     - match: Host(`photo.fferrando.cc`)
       kind: Rule
+      middlewares:
+        - name: public-ratelimit
+          namespace: traefik
       services:
         - name: librephoto-proxy
           port: 80

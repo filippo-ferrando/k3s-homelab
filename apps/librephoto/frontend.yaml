@@ -25,9 +25,14 @@ spec:
                     values:
                       - librephoto-backend
               topologyKey: kubernetes.io/hostname
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: reallibrephotos/librephotos-frontend:1.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
           env:
             - name: BACKEND_HOST
               value: "librephoto-backend"

@@ -15,9 +15,14 @@ spec:
       labels:
         app: librephoto-backend
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: reallibrephotos/librephotos:1.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
           env:
             - name: BASE_LOGS
               value: "/tmp/logs"

@@ -15,9 +15,14 @@ spec:
       labels:
         app: librephoto-redis
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
           image: redis:alpine
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 6379
 ---

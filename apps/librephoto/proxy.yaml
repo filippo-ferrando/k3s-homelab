@@ -25,9 +25,14 @@ spec:
                     values:
                       - librephoto-backend
               topologyKey: kubernetes.io/hostname
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: proxy
           image: reallibrephotos/librephotos-proxy:1.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 80
               name: http
