@@ -41,6 +41,21 @@ kubeseal \
   --format yaml > infrastructure/manifests/sealed-longhorn-auth.yaml
 ```
 
+## traefik dashboard basicauth secret creation
+
+```bash
+HTPASSWD_HASH=$(htpasswd -nb admin "YourStrongPasswordHere")
+
+kubectl create secret generic traefik-dashboard-auth-secret \
+  --namespace traefik \
+  --from-literal=users="${HTPASSWD_HASH}" \
+  --dry-run=client -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > infrastructure/traefik/sealed-dashboard-auth.yaml
+```
+
 forgejo db password secret creation
 
 ```bash
