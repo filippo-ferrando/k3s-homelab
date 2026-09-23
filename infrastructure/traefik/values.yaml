@@ -47,6 +47,8 @@ ingressRoute:
     matchRule: Host(`traefik.internal.fferrando.cc`)
     entryPoints:
       - websecure
+    middlewares:
+      - name: traefik-dashboard-auth
     tls:
       secretName: traefik-internal-tls
 

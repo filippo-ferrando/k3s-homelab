@@ -1,0 +1,13 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: traefik-dashboard-auth-secret
+  namespace: traefik
+spec:
+  encryptedData:
+    users: AgBTOqsoUxMcVe649qgAdj9sfsKVkaftWS0/16cvzBYO8hszyixIctwFsrrrqOLff1OeLOoPkEA3qzEpT8oo2eLE8dHCpfpuTbzPbxQ/3CY1Echf8aEOq0DFCEcGJgjT1q0Z33OMZreqp7aY8Nmz5AmMFhkTgQZ3iecwTRDuiKBeb7/t0AbRvSs9Tq84lTEJNEsQvx9KUk9vXbmTXPEquyZqeuQFc37jLtY2+gO463fFvC9aHEYDj/y9xBueLGhcNq43ugntKvzyfle62ApnZHRg5ehgIjMWv/c++ilR+JicCpsMKg+EBk51RS5YBq8aiby5VMNHHuDwk+gbDcOkkY9xbk3KI7MCfXY7cvojkxlf09ht60jU5IaLCJrcQEKuY393AbBKgYmLvZ5fmTyyjdQXulyDaV7a69AwsiFxvjGsNc02ddZS0Y06mncgtKR6dutU9OUnTmUC3j5NtJlVio75Sx3DSJ54p+99tnn+Ycz2Z6OyQJXdCMLWs6/6Vd6FEc8ywxd+EN/eb747vTURW/d+xeryAubG4vA9ckcZ/dazUJH4b883TJdtcy7FybpdRCyDZT7QDF4u5sEH885xZljnJDhEl+eiYrKRZGLe7r8HxApbCN17thK6y8XfcFv34RMtf7BzXNVdBqxn/95W+bSoMkon09GfmPJCfGfi6jyptFrg5vsP2DQKeUv99qzTejk=
+  template:
+    metadata:
+      name: traefik-dashboard-auth-secret
+      namespace: traefik
