@@ -43,3 +43,9 @@ customRules:
       condition: k8s.ns.name="argocd"
       override:
         condition: replace
+
+  rules-kube-prom-k8s-api.yaml: |-
+    - macro: user_known_contact_k8s_api_server_activities
+      condition: k8s.ns.name="monitoring"
+      override:
+        condition: replace
