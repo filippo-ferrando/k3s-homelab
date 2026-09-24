@@ -1,12 +1,5 @@
 driver:
   kind: modern_ebpf
-  # modernEbpf.leastPrivileged (capabilities instead of a privileged container)
-  # fails hard on AlmaLinux: SELinux's confined container_t domain blocks BPF
-  # ring-buffer map creation even with the right capabilities present -
-  # "libpman: ring buffer map type is not supported (errno 13, Permission
-  # denied)". Same failure mode reported on OpenShift for the same reason
-  # (also SELinux-enforcing by default). Left at the chart default (false,
-  # fully privileged container) instead.
 
 tolerations:
   - key: node-role.kubernetes.io/control-plane
@@ -32,20 +25,81 @@ falcosidekick:
       release: kube-prometheus-stack
 
 customRules:
-  rules-cnpg-wal-archive.yaml: |-
+  rules-cnpg-wal.yaml: |-
     - macro: postgres_running_cnpg
-      condition: or (proc.pname=postgres and proc.cmdline startswith "sh -c -- /controller/manager wal-archive")
+      condition: >-
+        or (k8s.ns.name=database
+            and container.image.repository=ghcr.io/cloudnative-pg/postgresql
+            and user.uid=26
+            and proc.exepath=/usr/bin/dash
+            and proc.pexepath glob "/usr/lib/postgresql/*/bin/postgres"
+            and (proc.cmdline startswith "sh -c -- /controller/manager wal-archive "
+                 or proc.cmdline startswith "sh -c -- /controller/manager wal-restore ")
+            and not proc.cmdline contains ";"
+            and not proc.cmdline contains "|"
+            and not proc.cmdline contains "&"
+            and not proc.cmdline contains "`"
+            and not proc.cmdline contains "$(")
       override:
         condition: append
 
-  rules-argocd-k8s-api.yaml: |-
+  rules-k8s-api.yaml: |-
     - macro: user_known_contact_k8s_api_server_activities
-      condition: k8s.ns.name="argocd"
+      condition: >-
+        (k8s.ns.name=argocd
+         and container.image.repository=quay.io/argoproj/argocd
+         and proc.exepath=/usr/local/bin/argocd)
+        or (k8s.ns.name=argocd
+            and container.image.repository=ghcr.io/dexidp/dex
+            and proc.exepath=/shared/argocd-dex)
+        or (k8s.ns.name=cert-manager
+            and container.image.repository=quay.io/jetstack/cert-manager-controller
+            and proc.exepath=/app/cmd/controller/controller)
+        or (k8s.ns.name=cert-manager
+            and container.image.repository=quay.io/jetstack/cert-manager-webhook
+            and proc.exepath=/app/cmd/webhook/webhook)
+        or (k8s.ns.name=cnpg-system
+            and container.image.repository=ghcr.io/cloudnative-pg/cloudnative-pg
+            and proc.exepath=/operator/manager_amd64)
+        or (k8s.ns.name=database
+            and container.image.repository=ghcr.io/cloudnative-pg/postgresql
+            and proc.exepath=/controller/manager)
+        or (k8s.ns.name=longhorn-system
+            and container.image.repository=docker.io/longhornio/longhorn-manager
+            and proc.exepath=/usr/local/sbin/longhorn-manager)
+        or (k8s.ns.name=longhorn-system
+            and ((container.image.repository=docker.io/longhornio/csi-attacher and proc.exepath=/csi-attacher)
+                 or (container.image.repository=docker.io/longhornio/csi-provisioner and proc.exepath=/csi-provisioner)
+                 or (container.image.repository=docker.io/longhornio/csi-resizer and proc.exepath=/csi-resizer)
+                 or (container.image.repository=docker.io/longhornio/csi-snapshotter and proc.exepath=/csi-snapshotter)))
+        or (k8s.ns.name=monitoring
+            and container.image.repository=registry.k8s.io/kube-state-metrics/kube-state-metrics
+            and proc.exepath=/kube-state-metrics)
+        or (k8s.ns.name=traefik
+            and container.image.repository in (docker.io/library/traefik, docker.io/traefik)
+            and proc.exepath=/usr/local/bin/traefik)
       override:
         condition: replace
 
-  rules-kube-prom-k8s-api.yaml: |-
-    - macro: user_known_contact_k8s_api_server_activities
-      condition: k8s.ns.name="monitoring"
+  rules-forgejo-sshd.yaml: |-
+    - macro: user_known_stand_streams_redirect_activities
+      condition: >-
+        (k8s.ns.name=forgejo
+         and container.image.repository=codeberg.org/forgejo/forgejo
+         and user.uid=0
+         and proc.exepath in (/usr/sbin/sshd, /usr/lib/ssh/sshd-session)
+         and fd.lport=22
+         and fd.cnet=10.42.0.0/16)
+      override:
+        condition: replace
+
+  rules-forgejo-binary.yaml: |-
+    - macro: known_drop_and_execute_activities
+      condition: >-
+        (k8s.ns.name=forgejo
+         and container.image.repository=codeberg.org/forgejo/forgejo
+         and user.uid=1000
+         and proc.exepath=/app/gitea/gitea
+         and proc.exe_ino.mtime < val(container.start_ts))
       override:
         condition: replace
