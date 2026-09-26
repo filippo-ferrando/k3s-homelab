@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: vibravid
-          image: ghcr.io/astraelabs/vibravid:v1.4.1
+          image: ghcr.io/astraelabs/vibravid:v1.4.2
           securityContext:
             allowPrivilegeEscalation: false
           ports:
