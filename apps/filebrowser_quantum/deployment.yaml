@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:2.0.8-beta
+          image: gtstef/filebrowser:2.0.9-beta
           securityContext:
             allowPrivilegeEscalation: false
           ports:
