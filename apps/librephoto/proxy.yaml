@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: proxy
-          image: reallibrephotos/librephotos-proxy:1.2.0
+          image: reallibrephotos/librephotos-proxy:1.2.1
           securityContext:
             allowPrivilegeEscalation: false
           ports:
