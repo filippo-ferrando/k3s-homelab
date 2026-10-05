@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: frontend
-          image: reallibrephotos/librephotos-frontend:1.2.0
+          image: reallibrephotos/librephotos-frontend:1.2.1
           securityContext:
             allowPrivilegeEscalation: false
           env:
