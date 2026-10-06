@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: portfolio
-          image: git.fferrando.cc/rdfilippo/portfolio:20261006-1434
+          image: git.fferrando.cc/rdfilippo/portfolio:20261006-1533
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
