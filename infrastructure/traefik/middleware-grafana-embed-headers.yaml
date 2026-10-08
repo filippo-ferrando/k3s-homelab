@@ -1,0 +1,20 @@
+# Grafana runs with allow_embedding (no X-Frame-Options), so framing is controlled here per route.
+# Public shared dashboards: only the portfolio homepage may embed them.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: grafana-public-embed
+  namespace: traefik
+spec:
+  headers:
+    contentSecurityPolicy: "frame-ancestors https://fferrando.cc"
+---
+# Internal Grafana UI: never framed by anyone (clickjacking protection on the logged-in UI).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: grafana-ui-deny-frame
+  namespace: traefik
+spec:
+  headers:
+    frameDeny: true

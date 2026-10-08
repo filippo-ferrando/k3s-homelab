@@ -50,6 +50,12 @@ grafana:
     enabled: true
     storageClassName: longhorn-single-replica
     size: 5Gi
+  grafana.ini:
+    security:
+      # Drops Grafana's X-Frame-Options: DENY so the portfolio homepage can iframe the shared dashboard.
+      # Framing is then restricted per route by Traefik: frame-ancestors on the public route,
+      # X-Frame-Options DENY on the internal UI (middleware-grafana-embed-headers.yaml).
+      allow_embedding: true
 
 alertmanager:
   alertmanagerSpec:
