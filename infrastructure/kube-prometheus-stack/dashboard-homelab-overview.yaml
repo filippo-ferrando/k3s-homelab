@@ -11,7 +11,7 @@ metadata:
 data:
   homelab-overview.json: |
     {
-      "uid": "k3s-homelab-overview",
+      "uid": "dccd1a3b-82e2-4aef-bcc6-2e601c169d4e",
       "title": "K3s Homelab Overview",
       "tags": [
         "k3s",
