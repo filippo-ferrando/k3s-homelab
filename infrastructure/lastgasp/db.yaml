@@ -1,0 +1,27 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: lastgasp-user
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  cluster:
+    name: homelab-db
+  name: lastgasp
+  login: true
+  passwordSecret:
+    name: lastgasp-db-credentials
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: lastgasp
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  name: lastgasp
+  owner: lastgasp
+  cluster:
+    name: homelab-db

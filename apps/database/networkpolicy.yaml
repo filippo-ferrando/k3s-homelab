@@ -32,4 +32,7 @@ spec:
               kubernetes.io/metadata.name: librephoto
         - namespaceSelector:
             matchLabels:
+              kubernetes.io/metadata.name: lastgasp
+        - namespaceSelector:
+            matchLabels:
               kubernetes.io/metadata.name: monitoring

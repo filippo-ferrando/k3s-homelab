@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: lastgasp-internal
+  namespace: lastgasp
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`lastgasp.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        # <release>-http service from the chart
+        - name: lastgasp-http
+          port: 8080
+  tls:
+    secretName: lastgasp-internal-tls

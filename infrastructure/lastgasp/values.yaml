@@ -1,0 +1,34 @@
+# Pre-made key secret: the chart generates one with `lookup`, which Argo CD can't run,
+# so it would rotate the key on every sync.
+key:
+  existingSecret: lastgasp-key
+
+server:
+  publicURL: https://lastgasp.internal.fferrando.cc
+
+  # CloudNativePG (homelab-db), password passed as PGPASSWORD
+  database:
+    url: postgres://lastgasp@homelab-db-rw.database.svc.cluster.local:5432/lastgasp?sslmode=require
+    passwordSecret:
+      name: lastgasp-db-credentials
+      key: password
+  persistence:
+    enabled: false
+
+  auth:
+    existingSecret: lastgasp-auth
+
+  # Real client IPs from Traefik (pod CIDR) for the login rate limiter
+  extraArgs:
+    - -auth-proxy-header=X-Forwarded-For
+    - -auth-trusted-proxies=10.42.0.0/16
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+    # kube-prometheus-stack only picks up rules with its release label
+    labels:
+      release: kube-prometheus-stack

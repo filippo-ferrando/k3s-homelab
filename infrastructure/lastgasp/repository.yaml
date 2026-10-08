@@ -1,0 +1,13 @@
+# Lets Argo CD pull Helm charts from the Forgejo OCI registry (public, no credentials)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-forgejo-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: forgejo-oci
+  type: helm
+  url: git.fferrando.cc/rdfilippo
+  enableOCI: "true"
