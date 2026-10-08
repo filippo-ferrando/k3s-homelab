@@ -1,0 +1,15 @@
+# A shared dashboard fires one query request per panel (~55) on load and on every refresh,
+# plus static assets on first load: public-ratelimit (60/min) is too tight for it.
+# Bucketed per visitor via Cf-Connecting-Ip, set by Cloudflare (RemoteAddr would be the cloudflared pod).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: grafana-public-ratelimit
+  namespace: traefik
+spec:
+  rateLimit:
+    average: 300
+    period: 1m
+    burst: 150
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip

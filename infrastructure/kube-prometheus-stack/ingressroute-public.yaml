@@ -1,0 +1,22 @@
+# Public, read-only access to Grafana "Shared dashboards" through the Cloudflare tunnel.
+# Only the shared-dashboard page, its query API and static assets are routed:
+# /login, /d/*, /api/datasources, /explore etc. never leave the LAN.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-public
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`status.fferrando.cc`) && (PathPrefix(`/public-dashboards/`) || PathPrefix(`/api/public/`) || PathPrefix(`/public/`))
+      kind: Rule
+      middlewares:
+        - name: grafana-public-ratelimit
+          namespace: traefik
+      services:
+        - name: kube-prometheus-stack-grafana
+          port: 80
