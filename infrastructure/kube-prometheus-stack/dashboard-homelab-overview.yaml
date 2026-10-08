@@ -3430,11 +3430,15 @@ data:
                 "steps": [
                   {
                     "value": null,
-                    "color": "green"
+                    "color": "red"
                   },
                   {
-                    "value": 80,
-                    "color": "red"
+                    "value": 14,
+                    "color": "orange"
+                  },
+                  {
+                    "value": 30,
+                    "color": "green"
                   }
                 ]
               },
@@ -3472,17 +3476,18 @@ data:
                   "mode": "none"
                 },
                 "thresholdsStyle": {
-                  "mode": "off"
+                  "mode": "dashed"
                 }
-              }
+              },
+              "min": 0
             },
             "overrides": []
           },
           "targets": [
             {
               "editorMode": "code",
-              "expr": "(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
-              "legendFormat": "{{name}} ({{namespace}})",
+              "expr": "((certmanager_certificate_expiration_timestamp_seconds > 0) - time()) / 86400",
+              "legendFormat": "{{name}} ({{exported_namespace}})",
               "range": true,
               "refId": "A",
               "datasource": {
