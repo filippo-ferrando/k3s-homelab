@@ -21,6 +21,9 @@ spec:
           command:
             - cloudflared
             - tunnel
+            # self-update swaps the binary in-container (Falco "Drop and execute") and exits 11 daily;
+            # version is pinned via the image tag and bumped by Renovate instead
+            - --no-autoupdate
             - --metrics
             - 0.0.0.0:2000
             - run

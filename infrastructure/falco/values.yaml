@@ -90,6 +90,11 @@ customRules:
          and proc.exepath in (/usr/sbin/sshd, /usr/lib/ssh/sshd-session)
          and fd.lport=22
          and fd.cnet=10.42.0.0/16)
+        or (k8s.ns.name=longhorn-system
+            and container.image.repository=docker.io/longhornio/longhorn-instance-manager
+            and user.uid=0
+            and proc.exepath in (/tini, /usr/local/bin/longhorn-instance-manager)
+            and (fd.snet=10.42.0.0/16 or fd.sip in ("127.0.0.1", "::1")))
       override:
         condition: replace
 
