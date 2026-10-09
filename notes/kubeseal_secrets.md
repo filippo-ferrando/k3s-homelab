@@ -124,3 +124,53 @@ kubeseal \
 
 shred -u auth
 ```
+
+## kubecraft secrets
+
+All three end up in `apps/kubecraft/`. The app stays degraded until they are pushed.
+
+1. db credentials: same password in `database` (for the CNPG `DatabaseRole`) and in `minecraft` (for the manager).
+   The username must be `kubecraft`, the role name in `apps/kubecraft/db.yaml`.
+
+```bash
+DB_PW="$(openssl rand -base64 32 | tr -d '/+=')"
+
+kubectl create secret generic kubecraft-db-credentials \
+  --namespace database \
+  --from-literal=username=kubecraft \
+  --from-literal=password="$DB_PW" \
+  --dry-run=client -o yaml | \
+kubectl label --local -f - cnpg.io/reload=true -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > apps/kubecraft/db_secret.yaml
+
+kubectl create secret generic kubecraft-db-credentials \
+  --namespace minecraft \
+  --from-literal=username=kubecraft \
+  --from-literal=password="$DB_PW" \
+  --dry-run=client -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > apps/kubecraft/deployment_secret.yaml
+```
+
+2. session secret and the first admin. The admin must change the password at first login.
+
+```bash
+ADMIN_PW="$(openssl rand -base64 18)"
+echo "kubecraft bootstrap admin password: $ADMIN_PW"
+
+kubectl create secret generic kubecraft-secrets \
+  --namespace minecraft \
+  --from-literal=SESSION_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=BOOTSTRAP_ADMIN_USER=admin \
+  --from-literal=BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PW" \
+  --dry-run=client -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > apps/kubecraft/secrets.yaml
+```

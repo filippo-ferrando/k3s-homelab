@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubecraft
+  namespace: argocd
+  annotations:
+    # After the CNPG role/database (waves 3-4)
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: default
+  sources:
+    # OCI chart from Forgejo, pulled through repo-forgejo-oci (infrastructure/lastgasp/repository.yaml)
+    - chart: kubecraft
+      repoURL: git.fferrando.cc/rdfilippo
+      targetRevision: 0.0.2
+      helm:
+        valueFiles:
+          - $values/apps/kubecraft/values.yaml
+    - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: minecraft
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kubecraft-internal
+  namespace: minecraft
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`mine.internal.fferrando.cc`)
+      kind: Rule
+      services:
+        # <release> service from the chart
+        - name: kubecraft
+          port: 80
+  tls:
+    secretName: kubecraft-internal-tls

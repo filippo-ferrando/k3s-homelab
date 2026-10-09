@@ -1,0 +1,48 @@
+# kubecraft: Minecraft servers reachable only from the LAN and the tailnet.
+# UI on mine.internal.fferrando.cc, servers on <slug>.mine.internal.fferrando.cc:25565.
+manager:
+  uiHost: mine.internal.fferrando.cc
+  serverBaseDomain: mine.internal.fferrando.cc
+  storageClass: longhorn-single-replica
+  defaultMaxServers: 2
+
+# SESSION_SECRET and the bootstrap admin (secrets.yaml)
+secrets:
+  existingSecret: kubecraft-secrets
+
+database:
+  host: homelab-db-rw.database.svc.cluster.local
+  name: kubecraft
+  sslmode: require
+  credentialsSecret:
+    name: kubecraft-db-credentials
+
+# TLS and routing are in certificate.yaml / ingressroute.yaml, like the other apps
+ingressRoute:
+  enabled: false
+certificate:
+  enabled: false
+
+mcRouter:
+  # k3s ServiceLB listens on 25565 on every node; nothing forwards it from the internet
+  service:
+    type: LoadBalancer
+  autoScale:
+    enabled: true
+    downAfter: 15m
+  metrics: true
+
+# kube-prometheus-stack selects every ServiceMonitor
+metrics:
+  serviceMonitor:
+    enabled: true
+
+networkPolicy:
+  managerFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+  metricsFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring

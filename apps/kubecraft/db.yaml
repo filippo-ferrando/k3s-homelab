@@ -1,0 +1,28 @@
+# Login and database on the shared CNPG cluster; kubecraft never deploys its own Postgres.
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: kubecraft-user
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  cluster:
+    name: homelab-db
+  name: kubecraft
+  login: true
+  passwordSecret:
+    name: kubecraft-db-credentials
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: kubecraft
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  name: kubecraft
+  owner: kubecraft
+  cluster:
+    name: homelab-db
