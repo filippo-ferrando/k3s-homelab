@@ -1,4 +1,4 @@
-# kubecraft: UI on mine.internal.fferrando.cc (LAN and tailnet only).
+# kubecraft: UI public on mine.fferrando.cc through cloudflared (ingressroute.yaml).
 # Servers: <slug>.mine.internal.fferrando.cc:25565 on the LAN and tailnet, and publicly
 # through playit.gg once a tunnel named kubecraft-<slug> exists (see playit below).
 manager:
@@ -6,6 +6,8 @@ manager:
   serverBaseDomain: mine.internal.fferrando.cc
   storageClass: longhorn-single-replica
   defaultMaxServers: 2
+  # The UI is public through cloudflared: the real client IP is in Cf-Connecting-Ip.
+  clientIPHeader: Cf-Connecting-Ip
 
 # SESSION_SECRET and the bootstrap admin (secrets.yaml)
 secrets:

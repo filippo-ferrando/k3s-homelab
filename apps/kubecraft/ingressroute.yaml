@@ -1,4 +1,21 @@
 apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: kubecraft-login-ratelimit
+  namespace: minecraft
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  # Bucketed per visitor via Cf-Connecting-Ip (RemoteAddr would be the cloudflared pod).
+  # Only on the login path: the UI polls the API and would hit a site-wide limit.
+  rateLimit:
+    average: 10
+    period: 1m
+    burst: 5
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip
+---
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: kubecraft-internal
@@ -9,6 +26,13 @@ spec:
   entryPoints:
     - cf-public
   routes:
+    - match: Host(`mine.fferrando.cc`) && Path(`/api/auth/login`)
+      kind: Rule
+      middlewares:
+        - name: kubecraft-login-ratelimit
+      services:
+        - name: kubecraft
+          port: 80
     - match: Host(`mine.fferrando.cc`)
       kind: Rule
       services:

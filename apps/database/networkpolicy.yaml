@@ -33,9 +33,13 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: lastgasp
+        # Only the kubecraft manager: game servers in the same namespace run user code.
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: minecraft
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kubecraft-manager
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring

@@ -2,5 +2,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: minecraft
+  labels:
+    # Game servers run user code: no privileged pods even if the manager or mc-router is compromised.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
