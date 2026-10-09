@@ -12,7 +12,7 @@ spec:
     # OCI chart from Forgejo, pulled through repo-forgejo-oci (infrastructure/lastgasp/repository.yaml)
     - chart: kubecraft
       repoURL: git.fferrando.cc/rdfilippo
-      targetRevision: 0.0.2
+      targetRevision: 0.0.3
       helm:
         valueFiles:
           - $values/apps/kubecraft/values.yaml

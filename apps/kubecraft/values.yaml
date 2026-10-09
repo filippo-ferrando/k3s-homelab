@@ -1,5 +1,6 @@
-# kubecraft: Minecraft servers reachable only from the LAN and the tailnet.
-# UI on mine.internal.fferrando.cc, servers on <slug>.mine.internal.fferrando.cc:25565.
+# kubecraft: UI on mine.internal.fferrando.cc (LAN and tailnet only).
+# Servers: <slug>.mine.internal.fferrando.cc:25565 on the LAN and tailnet, and publicly
+# through playit.gg once a tunnel named kubecraft-<slug> exists (see playit below).
 manager:
   uiHost: mine.internal.fferrando.cc
   serverBaseDomain: mine.internal.fferrando.cc
@@ -31,6 +32,14 @@ mcRouter:
     enabled: true
     downAfter: 15m
   metrics: true
+
+# playit.gg (we are behind CGNAT): the agent runs in a gateway pod. For each server,
+# create a Minecraft Java tunnel in the playit dashboard named kubecraft-<slug>,
+# local address 127.0.0.1, local port as suggested on the server page.
+playit:
+  enabled: true
+  existingSecret: kubecraft-playit
+  secretKey: SECRET_KEY
 
 # kube-prometheus-stack selects every ServiceMonitor
 metrics:

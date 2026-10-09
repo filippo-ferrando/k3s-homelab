@@ -174,3 +174,21 @@ kubeseal \
   --controller-name sealed-secrets \
   --format yaml > apps/kubecraft/secrets.yaml
 ```
+
+## kubecraft playit.gg agent key
+
+Used by the playit agent in the gateway pod and (read only) by the manager to find tunnels.
+Generate the key in the playit dashboard (agent setup, Docker); never paste it into a command line.
+
+```bash
+read -rsp "playit agent secret: " PLAYIT_KEY; echo
+kubectl create secret generic kubecraft-playit \
+  --namespace minecraft \
+  --from-literal=SECRET_KEY="$(printf '%s' "$PLAYIT_KEY" | tr -d '[:space:]')" \
+  --dry-run=client -o yaml | \
+kubeseal \
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets \
+  --format yaml > apps/kubecraft/playit_secret.yaml
+unset PLAYIT_KEY
+```

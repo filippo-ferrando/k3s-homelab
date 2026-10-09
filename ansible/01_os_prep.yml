@@ -63,6 +63,10 @@
         - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
         - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
         - { key: "net.ipv4.ip_forward", value: "1" }
+        # RHEL defaults (128 instances) run out with Longhorn, Falco and log followers;
+        # the kubelet then fails "kubectl logs -f" with "too many open files".
+        - { key: "fs.inotify.max_user_instances", value: "8192" }
+        - { key: "fs.inotify.max_user_watches", value: "524288" }
 
     - name: Configure zram device
       ansible.builtin.copy:
