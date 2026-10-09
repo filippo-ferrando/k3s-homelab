@@ -7,13 +7,11 @@ metadata:
     argocd.argoproj.io/sync-wave: "6"
 spec:
   entryPoints:
-    - websecure
+    - cf-public
   routes:
-    - match: Host(`mine.internal.fferrando.cc`)
+    - match: Host(`mine.fferrando.cc`)
       kind: Rule
       services:
         # <release> service from the chart
         - name: kubecraft
           port: 80
-  tls:
-    secretName: kubecraft-internal-tls

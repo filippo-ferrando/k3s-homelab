@@ -2,7 +2,7 @@
 # Servers: <slug>.mine.internal.fferrando.cc:25565 on the LAN and tailnet, and publicly
 # through playit.gg once a tunnel named kubecraft-<slug> exists (see playit below).
 manager:
-  uiHost: mine.internal.fferrando.cc
+  uiHost: mine.fferrando.cc
   serverBaseDomain: mine.internal.fferrando.cc
   storageClass: longhorn-single-replica
   defaultMaxServers: 2
