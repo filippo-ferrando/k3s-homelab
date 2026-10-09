@@ -1,0 +1,185 @@
+---
+# Public entrypoint: Vultr VPS (Debian 12/13) -> WireGuard -> OPNsense -> Traefik
+# First run: ansible-playbook 05_setup_vps.yml -e ansible_port=22
+# Afterwards sshd listens on vps_ssh_port (22 belongs to Forgejo)
+- name: Setup public entrypoint VPS
+  hosts: vps
+  become: true
+  vars:
+    vps_ssh_port: 2022
+    wg_port: 51820
+    wg_vps_address: 10.200.0.1/24
+    wg_opnsense_pubkey: "CHANGEME"
+    wg_home_allowed_ips: "10.200.0.2/32, 192.168.10.0/24"
+    traefik_nodes:
+      - 192.168.10.100
+      - 192.168.10.101
+      - 192.168.10.102
+      - 192.168.10.103
+    # TCP goes through HAProxy with PROXY protocol v2 -> Traefik entrypoints
+    tcp_forwards:
+      - { name: https, listen: 443, target: 9443 }
+      - { name: forgejo-ssh, listen: 22, target: 2222 }
+    # UDP is DNAT'ed + masqueraded (client IP is lost)
+    udp_target: 192.168.10.102
+    udp_forwards: []
+    # - { listen: 19132, target: 19132 }
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - wireguard-tools
+          - haproxy
+          - nftables
+        state: present
+        update_cache: true
+
+    - name: Enable IPv4 forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        sysctl_file: /etc/sysctl.d/99-forward.conf
+        reload: true
+
+    - name: Generate WireGuard private key
+      ansible.builtin.shell:
+        cmd: umask 077 && wg genkey > /etc/wireguard/privatekey
+        creates: /etc/wireguard/privatekey
+
+    - name: Read WireGuard public key
+      ansible.builtin.shell:
+        cmd: wg pubkey < /etc/wireguard/privatekey
+      register: wg_pubkey
+      changed_when: false
+
+    - name: Show public key (paste into the OPNsense peer)
+      ansible.builtin.debug:
+        msg: "VPS WireGuard public key: {{ wg_pubkey.stdout }}"
+
+    - name: Configure WireGuard
+      ansible.builtin.copy:
+        dest: /etc/wireguard/wg0.conf
+        mode: "0600"
+        content: |
+          [Interface]
+          Address = {{ wg_vps_address }}
+          ListenPort = {{ wg_port }}
+          PostUp = wg set %i private-key /etc/wireguard/privatekey
+
+          [Peer]
+          # OPNsense (behind NAT, it dials in and keeps the tunnel alive)
+          PublicKey = {{ wg_opnsense_pubkey }}
+          AllowedIPs = {{ wg_home_allowed_ips }}
+      notify: Restart WireGuard
+
+    - name: Configure nftables
+      ansible.builtin.copy:
+        dest: /etc/nftables.conf
+        mode: "0644"
+        validate: nft -c -f %s
+        content: |
+          #!/usr/sbin/nft -f
+          flush ruleset
+
+          table inet filter {
+            chain input {
+              type filter hook input priority filter; policy drop;
+              ct state established,related accept
+              ct state invalid drop
+              iif lo accept
+              meta l4proto { icmp, ipv6-icmp } accept
+              tcp dport {{ vps_ssh_port }} accept
+              udp dport {{ wg_port }} accept
+              tcp dport { {{ tcp_forwards | map(attribute='listen') | join(', ') }} } accept
+            }
+            chain forward {
+              type filter hook forward priority filter; policy drop;
+              ct state established,related accept
+              ct status dnat oifname "wg0" accept
+            }
+          }
+          {% if udp_forwards %}
+
+          table ip nat {
+            chain prerouting {
+              type nat hook prerouting priority dstnat;
+          {% for f in udp_forwards %}
+              iifname != "wg0" udp dport {{ f.listen }} dnat to {{ udp_target }}:{{ f.target }}
+          {% endfor %}
+            }
+            chain postrouting {
+              type nat hook postrouting priority srcnat;
+              oifname "wg0" ct status dnat masquerade
+            }
+          }
+          {% endif %}
+      notify: Restart nftables
+
+    - name: Configure HAProxy
+      ansible.builtin.copy:
+        dest: /etc/haproxy/haproxy.cfg
+        mode: "0644"
+        validate: haproxy -c -f %s
+        content: |
+          global
+            log /dev/log local0
+            maxconn 4096
+
+          defaults
+            mode tcp
+            log global
+            option tcplog
+            timeout connect 5s
+            timeout client 1h
+            timeout server 1h
+          {% for f in tcp_forwards %}
+
+          listen {{ f.name }}
+            bind :{{ f.listen }}
+          {% for n in traefik_nodes %}
+            server node{{ loop.index }} {{ n }}:{{ f.target }} check send-proxy-v2
+          {% endfor %}
+          {% endfor %}
+      notify: Restart HAProxy
+
+    - name: Move sshd off port 22 and disable password login
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-vps.conf
+        mode: "0644"
+        content: |
+          Port {{ vps_ssh_port }}
+          PasswordAuthentication no
+      notify: Restart sshd
+
+    - name: Enable services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - nftables
+        - wg-quick@wg0
+        - haproxy
+
+  # Order matters: nftables opens vps_ssh_port before sshd moves,
+  # sshd frees :22 before HAProxy binds it.
+  handlers:
+    - name: Restart nftables
+      ansible.builtin.systemd_service:
+        name: nftables
+        state: restarted
+
+    - name: Restart WireGuard
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg0
+        state: restarted
+
+    - name: Restart sshd
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: restarted
+
+    - name: Restart HAProxy
+      ansible.builtin.systemd_service:
+        name: haproxy
+        state: restarted
