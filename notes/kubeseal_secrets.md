@@ -177,18 +177,15 @@ kubeseal \
 
 ## kubecraft playit.gg agent key
 
-Used by the playit agent in the gateway pod and (read only) by the manager to find tunnels.
-Generate the key in the playit dashboard (agent setup, Docker); never paste it into a command line.
+Used by the playit agent in the gateway pod and by the manager to create and delete tunnels.
+It must be the key of a self-managed agent: keys from the playit dashboard are read only.
+The kubecraft claim script prints a link to approve while logged in to playit.gg, then
+writes the Secret on stdout, so the key never shows up on screen.
 
 ```bash
-read -rsp "playit agent secret: " PLAYIT_KEY; echo
-kubectl create secret generic kubecraft-playit \
-  --namespace minecraft \
-  --from-literal=SECRET_KEY="$(printf '%s' "$PLAYIT_KEY" | tr -d '[:space:]')" \
-  --dry-run=client -o yaml | \
+~/Desktop/Projects/kubecraft/hack/playit-claim.sh minecraft kubecraft-playit | \
 kubeseal \
   --controller-namespace kube-system \
   --controller-name sealed-secrets \
   --format yaml > apps/kubecraft/playit_secret.yaml
-unset PLAYIT_KEY
 ```

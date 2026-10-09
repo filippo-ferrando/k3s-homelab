@@ -2106,7 +2106,7 @@ data:
           "id": 30,
           "type": "timeseries",
           "title": "Reconciler",
-          "description": "Failed passes, apply errors and playit list errors should stay at 0",
+          "description": "Failed passes, apply errors and playit errors should stay at 0. A failing tunnel create (plan limit) retries every 30s",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
@@ -2151,8 +2151,17 @@ data:
                 "uid": "${DS_PROMETHEUS}"
               },
               "expr": "sum(rate(kubecraft_playit_syncs_total{namespace=\"$namespace\",result=\"error\"}[$__rate_interval]))",
-              "legendFormat": "playit list errors/s",
+              "legendFormat": "playit sync errors/s",
               "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "expr": "sum(rate(kubecraft_playit_tunnel_actions_total{namespace=\"$namespace\",result=\"error\"}[$__rate_interval]))",
+              "legendFormat": "playit tunnel errors/s",
+              "refId": "E"
             }
           ],
           "fieldConfig": {
