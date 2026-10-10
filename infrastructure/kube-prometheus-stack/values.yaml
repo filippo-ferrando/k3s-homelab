@@ -36,9 +36,19 @@ prometheus-node-exporter:
     runAsGroup: 0
     runAsNonRoot: false
     runAsUser: 0
+    # Nodes run k3s --selinux: under the default container_t label the filesystem collector
+    # can't statfs host mounts (no node_filesystem_* at all). spc_t lifts SELinux confinement
+    # without privileged's capabilities and device access.
+    seLinuxOptions:
+      type: spc_t
 
   containerSecurityContext:
-    privileged: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+      # Root without DAC_READ_SEARCH can't traverse root-only dirs to reach some mount points
+      add: [DAC_READ_SEARCH]
 
   extraArgs:
     - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)

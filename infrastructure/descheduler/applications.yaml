@@ -14,25 +14,10 @@ spec:
     helm:
       values: |
         kind: CronJob
-        schedule: "0 */2 * * *" # Runs every 12 hours
-        deschedulerPolicy:
-          strategies:
-            RemoveDuplicates:
-              enabled: true
-            RemovePodsViolatingInterPodAntiAffinity:
-              enabled: true
-            LowNodeUtilization:
-              enabled: true
-              params:
-                nodeResourceUtilizationThresholds:
-                  thresholds:
-                    cpu: 20
-                    memory: 20
-                    pods: 20
-                  targetThresholds:
-                    cpu: 50
-                    memory: 50
-                    pods: 50
+        schedule: "0 */2 * * *" # Runs every 2 hours
+        # No deschedulerPolicy override: the chart's default v1alpha2 profile already enables
+        # RemoveDuplicates, RemovePodsViolatingInterPodAntiAffinity and LowNodeUtilization (20/50 thresholds),
+        # plus restart/taint/affinity/topology-spread plugins.
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
