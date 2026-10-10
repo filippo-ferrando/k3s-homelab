@@ -7,6 +7,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
 spec:
   instances: 3
+  # Rolling updates (resources, image bumps) promote a replica first instead of restarting
+  # the primary in place, which blocks writes until its smart shutdown times out (~3 min).
+  primaryUpdateMethod: switchover
 
   monitoring:
     enablePodMonitor: true
