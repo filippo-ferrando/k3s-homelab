@@ -1,30 +1,14 @@
+# Nothing in. Out: DNS, Traefik's cf-public entrypoint, and the Cloudflare edge
+# (7844 tunnel over QUIC/HTTP2, 443 for api.cloudflare.com).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: default-ingress-policy
-  namespace: vaultwarden
+  name: cloudflared
+  namespace: cloudflared
 spec:
   podSelector: {}
   policyTypes:
     - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: vaultwarden
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: traefik
----
-# Out: DNS, own namespace, the CNPG cluster, internet (icons, push relay, SMTP).
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-egress-policy
-  namespace: vaultwarden
-spec:
-  podSelector: {}
-  policyTypes:
     - Egress
   egress:
     - to:
@@ -40,18 +24,16 @@ spec:
         - protocol: TCP
           port: 53
     - to:
-        - podSelector: {}
-    - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: database
+              kubernetes.io/metadata.name: traefik
           podSelector:
             matchLabels:
-              cnpg.io/cluster: homelab-db
+              app.kubernetes.io/name: traefik
       ports:
         - protocol: TCP
-          port: 5432
-    # Internet only: not the LAN/NAS, nodes (kube API), pods, services or the tailnet
+          port: 9443
+    # Cloudflare edge: public IPs only
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
@@ -60,3 +42,10 @@ spec:
               - 172.16.0.0/12
               - 192.168.0.0/16
               - 100.64.0.0/10
+      ports:
+        - protocol: UDP
+          port: 7844
+        - protocol: TCP
+          port: 7844
+        - protocol: TCP
+          port: 443
