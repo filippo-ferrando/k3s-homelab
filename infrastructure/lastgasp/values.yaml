@@ -4,6 +4,9 @@ key:
   existingSecret: lastgasp-key
 
 server:
+  image:
+    # v0.1.4, pinned so a rewritten tag in the registry is never pulled
+    digest: sha256:25051c63c076f1208722968c5e64c188b642f455c9525925df4dd37f7646f82e
   publicURL: https://lastgasp.internal.fferrando.cc
 
   # CloudNativePG (homelab-db), password passed as PGPASSWORD
@@ -22,6 +25,37 @@ server:
   extraArgs:
     - -auth-proxy-header=X-Forwarded-For
     - -auth-trusted-proxies=10.42.0.0/16
+
+  requireForwardSecrecy: true
+
+# Non privileged agent: /dev/kmsg comes from generic-device-plugin (devic.es/kmsg)
+# and only the three capabilities it uses are kept.
+agent:
+  image:
+    # v0.1.4
+    digest: sha256:f83369cb627615088838e6ee8069c004351171595d1312cc3286155a0c92292a
+  kmsgHostPath: false
+  # k3s runs with --selinux: container_t may not read /dev/kmsg and pstore or write the host paths
+  podSecurityContext:
+    seLinuxOptions:
+      type: spc_t
+  securityContext:
+    privileged: false
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsUser: 0
+    capabilities:
+      drop: [ALL]
+      add: [SYSLOG, IPC_LOCK, SYS_RESOURCE]
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    requests:
+      cpu: 10m
+      memory: 96Mi
+    limits:
+      memory: 128Mi
+      devic.es/kmsg: 1
 
 metrics:
   enabled: true

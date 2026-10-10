@@ -9,7 +9,8 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`lastgasp.internal.fferrando.cc`)
+    # /metrics stays in the cluster: Prometheus scrapes the service directly
+    - match: Host(`lastgasp.internal.fferrando.cc`) && !PathPrefix(`/metrics`)
       kind: Rule
       services:
         # <release>-http service from the chart

@@ -1,21 +1,95 @@
-# Agents (same namespace, UDP), Traefik (UI) and Prometheus (/metrics)
+# Server: agent packets (UDP) from the agents only, UI from Traefik, /metrics from Prometheus.
+# Out: DNS and the CNPG cluster only.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: default-ingress-policy
+  name: lastgasp-server
   namespace: lastgasp
 spec:
-  podSelector: {}
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: server
   policyTypes:
     - Ingress
+    - Egress
   ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: agent
+      ports:
+        - protocol: UDP
+          port: 5140
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: lastgasp
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: homelab-db
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Agents: nothing in (server replies are allowed as return traffic), out to DNS and the server only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: lastgasp-agent
+  namespace: lastgasp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: agent
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+      ports:
+        - protocol: UDP
+          port: 5140
