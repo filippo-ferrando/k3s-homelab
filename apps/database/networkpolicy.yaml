@@ -8,31 +8,58 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Replication between instances (and CNPG join/initdb jobs)
+    - from:
+        - podSelector: {}
+    # CNPG operator polls each instance's status endpoint
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: database
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: cnpg-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Only the pods that actually hold DB credentials, not their whole namespace
+    - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: forgejo
+          podSelector:
+            matchLabels:
+              app: forgejo
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: hedgedoc
+          podSelector:
+            matchLabels:
+              app: hedgedoc
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: vaultwarden
+          podSelector:
+            matchLabels:
+              app: vaultwarden
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: jellyfin
+          podSelector:
+            matchLabels:
+              app: jellyfin
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: librephoto
+          podSelector:
+            matchLabels:
+              app: librephoto-backend
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: lastgasp
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
         # Only the kubecraft manager: game servers in the same namespace run user code.
         - namespaceSelector:
             matchLabels:
@@ -40,6 +67,17 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: kubecraft-manager
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Prometheus scrapes the postgres exporter
+    - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9187
