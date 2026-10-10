@@ -4,7 +4,7 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: grafana-public-embed
-  namespace: traefik
+  namespace: monitoring
 spec:
   headers:
     contentSecurityPolicy: "frame-ancestors https://fferrando.cc"
@@ -14,7 +14,7 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: grafana-ui-deny-frame
-  namespace: traefik
+  namespace: monitoring
 spec:
   headers:
     frameDeny: true
