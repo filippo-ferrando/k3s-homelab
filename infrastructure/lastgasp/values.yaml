@@ -1,9 +1,13 @@
 # Pre-made key secret: the chart generates one with `lookup`, which Argo CD can't run,
-# so it would rotate the key on every sync.
+# so it would rotate the key on every sync. It holds only the server key file, without
+# a "*" line: every agent enrolls (agent.enroll) and uses its own key.
 key:
   existingSecret: lastgasp-key
 
 server:
+  # The server reads its key file at start only, so a change to lastgasp-key needs a new value here
+  podAnnotations:
+    lastgasp/keys-revision: "2-no-shared-key"
   image:
     # v0.1.4, pinned so a rewritten tag in the registry is never pulled
     digest: sha256:25051c63c076f1208722968c5e64c188b642f455c9525925df4dd37f7646f82e
