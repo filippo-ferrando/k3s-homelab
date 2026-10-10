@@ -55,7 +55,7 @@ ingressRoute:
 providers:
   kubernetesCRD:
     enabled: true
-    allowCrossNamespace: true
+    allowCrossNamespace: false
 
 metrics:
   prometheus:
