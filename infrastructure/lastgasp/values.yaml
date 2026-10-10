@@ -1,19 +1,6 @@
-# Pre-made key secret: the chart generates one with `lookup`, which Argo CD can't run,
-# so it would rotate the key on every sync. It holds only the server key file, without
-# a "*" line: every agent enrolls (agent.enroll) and uses its own key.
-key:
-  existingSecret: lastgasp-key
-
 server:
-  # The server reads its key file at start only, so a change to lastgasp-key needs a new value here
-  podAnnotations:
-    lastgasp/keys-revision: "2-no-shared-key"
-  image:
-    # v0.1.4, pinned so a rewritten tag in the registry is never pulled
-    digest: sha256:25051c63c076f1208722968c5e64c188b642f455c9525925df4dd37f7646f82e
   publicURL: https://lastgasp.internal.fferrando.cc
 
-  # CloudNativePG (homelab-db), password passed as PGPASSWORD
   database:
     url: postgres://lastgasp@homelab-db-rw.database.svc.cluster.local:5432/lastgasp?sslmode=require
     passwordSecret:
@@ -25,26 +12,17 @@ server:
   auth:
     existingSecret: lastgasp-auth
 
-  # Real client IPs from Traefik (pod CIDR) for the login rate limiter
   extraArgs:
     - -auth-proxy-header=X-Forwarded-For
     - -auth-trusted-proxies=10.42.0.0/16
 
   requireForwardSecrecy: true
 
-# Non privileged agent: /dev/kmsg comes from generic-device-plugin (devic.es/kmsg)
-# and only the three capabilities it uses are kept.
 agent:
-  image:
-    # v0.1.4
-    digest: sha256:f83369cb627615088838e6ee8069c004351171595d1312cc3286155a0c92292a
-  # Each node enrolls once with the join token (join_secret.yaml) and keeps its own key
-  # in /var/lib/lastgasp, so one node cannot send as another
   enroll:
     tokenSecret:
       name: lastgasp-join
   kmsgHostPath: false
-  # k3s runs with --selinux: container_t may not read /dev/kmsg and pstore or write the host paths
   podSecurityContext:
     seLinuxOptions:
       type: spc_t
@@ -72,6 +50,5 @@ metrics:
     enabled: true
   prometheusRule:
     enabled: true
-    # kube-prometheus-stack only picks up rules with its release label
     labels:
       release: kube-prometheus-stack

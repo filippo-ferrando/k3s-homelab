@@ -10,7 +10,8 @@
   },
   "kubernetes": {
     "managerFilePatterns": [
-      "/^apps/.+\\.yaml$/"
+      "/^apps/.+\\.yaml$/",
+      "/^infrastructure/generic-device-plugin/.+\\.yaml$/"
     ]
   },
   "packageRules": [
