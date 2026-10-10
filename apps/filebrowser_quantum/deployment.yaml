@@ -7,6 +7,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
+  # ReadWriteOnce volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: filebrowser
@@ -15,6 +18,8 @@ spec:
       labels:
         app: filebrowser
     spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 1000
         seccompProfile:

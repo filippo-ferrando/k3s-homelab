@@ -15,9 +15,21 @@ spec:
       labels:
         app: cloudflared
     spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
+      securityContext:
+        # distroless :nonroot image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.8.3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           command:
             - cloudflared
             - tunnel

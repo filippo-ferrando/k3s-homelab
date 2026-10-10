@@ -7,6 +7,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
+  # ReadWriteOnce volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: jellyfin
@@ -15,6 +18,8 @@ spec:
       labels:
         app: jellyfin
     spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -76,6 +81,7 @@ spec:
               mountPath: /cache
             - name: media
               mountPath: /media
+              readOnly: true
       volumes:
         - name: cache
           emptyDir: {}

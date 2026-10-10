@@ -9,6 +9,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
+  # ReadWriteOnce volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: hedgedoc
@@ -17,6 +20,8 @@ spec:
       labels:
         app: hedgedoc
     spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 10000
         seccompProfile:

@@ -3,6 +3,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: vibravid
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
 

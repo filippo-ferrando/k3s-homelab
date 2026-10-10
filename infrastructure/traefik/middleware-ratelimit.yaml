@@ -8,3 +8,6 @@ spec:
     average: 60
     period: 1m
     burst: 30
+    # Bucketed per visitor via Cf-Connecting-Ip, set by Cloudflare (RemoteAddr would be the cloudflared pod).
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip

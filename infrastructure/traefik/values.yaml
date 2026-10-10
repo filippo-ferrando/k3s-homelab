@@ -32,7 +32,7 @@ ports:
   cf-public:
     port: 9443
     expose:
-      default: true
+      default: false
     exposedPort: 9443
 
   metrics:

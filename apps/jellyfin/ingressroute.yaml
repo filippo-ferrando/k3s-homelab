@@ -31,6 +31,25 @@ spec:
   routes:
     - match: Host(`jellyfin.fferrando.cc`)
       kind: Rule
+      middlewares:
+        - name: jellyfin-public-ratelimit
       services:
         - name: jellyfin
           port: 8096
+---
+# Library pages pull dozens of posters and playback streams segments: public-ratelimit (60/min) is too tight.
+# Bucketed per visitor via Cf-Connecting-Ip (RemoteAddr would be the cloudflared pod).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: jellyfin-public-ratelimit
+  namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  rateLimit:
+    average: 600
+    period: 1m
+    burst: 300
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip

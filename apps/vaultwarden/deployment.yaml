@@ -9,6 +9,9 @@ metadata:
     app: vaultwarden
 spec:
   replicas: 1
+  # ReadWriteOnce volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: vaultwarden
@@ -17,6 +20,8 @@ spec:
       labels:
         app: vaultwarden
     spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
       securityContext:
         seccompProfile:
           type: RuntimeDefault
