@@ -5,7 +5,7 @@
   ],
   "argocd": {
     "managerFilePatterns": [
-      "/^infrastructure/.+\\.yaml$/"
+      "/^(infrastructure|apps)/.+\\.yaml$/"
     ]
   },
   "kubernetes": {
