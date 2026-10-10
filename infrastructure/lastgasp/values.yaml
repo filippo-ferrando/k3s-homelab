@@ -34,6 +34,11 @@ agent:
   image:
     # v0.1.4
     digest: sha256:f83369cb627615088838e6ee8069c004351171595d1312cc3286155a0c92292a
+  # Each node enrolls once with the join token (join_secret.yaml) and keeps its own key
+  # in /var/lib/lastgasp, so one node cannot send as another
+  enroll:
+    tokenSecret:
+      name: lastgasp-join
   kmsgHostPath: false
   # k3s runs with --selinux: container_t may not read /dev/kmsg and pstore or write the host paths
   podSecurityContext:
