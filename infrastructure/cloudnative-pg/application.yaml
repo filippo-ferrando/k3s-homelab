@@ -11,6 +11,13 @@ spec:
     chart: cloudnative-pg
     repoURL: https://cloudnative-pg.github.io/charts
     targetRevision: 0.29.1
+    helm:
+      valuesObject:
+        resources:
+          requests:
+            memory: 64Mi
+          limits:
+            memory: 256Mi
   destination:
     server: "https://kubernetes.default.svc"
     namespace: cnpg-system

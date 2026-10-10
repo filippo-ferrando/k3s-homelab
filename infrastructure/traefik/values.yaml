@@ -72,3 +72,9 @@ metrics:
       enabled: true
       additionalLabels:
         release: kube-prometheus-stack
+
+resources:
+  requests:
+    memory: 64Mi
+  limits:
+    memory: 256Mi

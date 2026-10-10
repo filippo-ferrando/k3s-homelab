@@ -19,6 +19,24 @@ spec:
           value: "true"
         - name: prometheus.servicemonitor.prometheusInstance
           value: "kube-prometheus-stack"
+      valuesObject:
+        resources:
+          requests:
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        cainjector:
+          resources:
+            requests:
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+        webhook:
+          resources:
+            requests:
+              memory: 32Mi
+            limits:
+              memory: 128Mi
   destination:
     server: "https://kubernetes.default.svc"
     namespace: cert-manager

@@ -31,6 +31,12 @@ kubeApiServer:
         regex: '(apiserver_request_duration_seconds_bucket|apiserver_request_sli_duration_seconds_bucket|apiserver_request_body_size_bytes_bucket|apiserver_response_sizes_bucket|apiserver_watch_events_sizes_bucket|apiserver_watch_list_duration_seconds_bucket|apiserver_watch_cache_read_wait_seconds_bucket|etcd_request_duration_seconds_bucket|workqueue_work_duration_seconds_bucket|workqueue_queue_duration_seconds_bucket)'
 
 prometheus-node-exporter:
+  resources:
+    requests:
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
   securityContext:
     fsGroup: 0
     runAsGroup: 0
@@ -55,6 +61,18 @@ prometheus-node-exporter:
     - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$
 
 grafana:
+  # peak ~670Mi
+  resources:
+    requests:
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+  sidecar:
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 256Mi
   adminPassword: "admin" # You will change this in the Grafana UI on first login
   persistence:
     enabled: true
@@ -69,6 +87,11 @@ grafana:
 
 alertmanager:
   alertmanagerSpec:
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 256Mi
     storage:
       volumeClaimTemplate:
         spec:
@@ -77,3 +100,23 @@ alertmanager:
           resources:
             requests:
               storage: 2Gi
+
+kube-state-metrics:
+  resources:
+    requests:
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  prometheusConfigReloader:
+    resources:
+      requests:
+        memory: 32Mi
+      limits:
+        memory: 128Mi

@@ -26,6 +26,11 @@ spec:
       containers:
         - name: vibravid
           image: ghcr.io/astraelabs/vibravid:v1.4.6
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 1Gi
           securityContext:
             allowPrivilegeEscalation: false
           ports:

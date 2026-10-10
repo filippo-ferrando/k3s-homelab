@@ -19,10 +19,24 @@ serviceMonitor:
 
 falcosidekick:
   enabled: true
+  resources:
+    requests:
+      memory: 32Mi
+    limits:
+      memory: 128Mi
   serviceMonitor:
     enabled: true
     additionalLabels:
       release: kube-prometheus-stack
+
+falcoctl:
+  artifact:
+    follow:
+      resources:
+        requests:
+          memory: 32Mi
+        limits:
+          memory: 128Mi
 
 customRules:
   rules-cnpg-wal.yaml: |-

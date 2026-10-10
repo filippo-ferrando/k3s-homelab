@@ -26,6 +26,11 @@ spec:
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.8.3
+          resources:
+            requests:
+              memory: 32Mi
+            limits:
+              memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
