@@ -9,11 +9,10 @@ The full procedure, from bare hosts to a cluster that Argo CD reconciles on its 
 ## 1. Provision hosts and k3s (Ansible)
 
 ```bash
-ansible-playbook -i ansible/inventory.ini ansible/01_os_prep.yml          # packages, SELinux, firewall, iSCSI/NFS clients, Tailscale
-ansible-playbook -i ansible/inventory.ini ansible/02_bootstrap_cluster.yml # k3s HA (3 servers + casper agent) + Argo CD
-ansible-playbook -i ansible/inventory.ini ansible/04_deploy_nfs_shares.yml # NFS exports on casper
-ansible-playbook -i ansible/inventory.ini ansible/03_deploy_borg_backups.yml
+ansible-playbook -i ansible/inventory.ini ansible/site.yml --ask-vault-pass
 ```
+
+`site.yml` runs every `provision/` playbook in order (OS, firewall, Tailscale, k3s, Argo CD, NFS, backups); each can also be run alone. Join each node to the tailnet with `tailscale up` once. See [`ansible/README.md`](../../ansible/README.md).
 
 Then fetch the kubeconfig: [kubectl.md#access](../kubectl.md#access).
 

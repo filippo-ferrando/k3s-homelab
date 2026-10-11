@@ -1,6 +1,6 @@
 # pushgateway
 
-Prometheus Pushgateway. It receives metrics pushed by the Borg backup jobs that run on the hosts (`ansible/03_deploy_borg_backups.yml`), so backup status shows up in Prometheus and Grafana.
+Prometheus Pushgateway. It receives metrics pushed by the Borg backup jobs that run on the hosts (`ansible/provision/07_backups.yml`), so backup status shows up in Prometheus and Grafana.
 
 - **Namespace:** `monitoring`
 - **URL:** `https://pushgateway.internal.fferrando.cc` (LAN only, where the backup scripts push)

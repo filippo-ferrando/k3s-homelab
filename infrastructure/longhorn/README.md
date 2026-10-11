@@ -18,4 +18,4 @@
 | `ingressroute.yaml` | 2 | Internal route to `longhorn-frontend` behind `longhorn-auth`. |
 | `networkpolicyprom.yml` | 2 | Lets Prometheus scrape `longhorn-manager` on 9500. |
 
-**Host prerequisites** (iSCSI, NFS client, etc.) are installed by `ansible/01_os_prep.yml`.
+**Host prerequisites** (iSCSI, NFS client, etc.) are installed by `ansible/provision/01_os.yml`.

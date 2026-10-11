@@ -292,10 +292,12 @@ kubectl apply -f system/root-app.yaml
 Uses the `kubectl cnpg` plugin.
 
 ```bash
-kubectl cnpg status homelab-db -n database             # primary, replicas, lag, WAL
+kubectl cnpg status homelab-db -n database             # primary, replicas, health (see note below)
 kubectl get cluster homelab-db -n database -o jsonpath='{.status.currentPrimary}'; echo
 kubectl get databases.postgresql.cnpg.io -n database   # per-app databases declared in Git
 ```
+
+The per-instance section of `cnpg status` (lag, WAL) always shows `Error(s) extracting status`: it goes through the API server pod proxy to port 8000, which `apps/database/networkpolicy.yaml` opens only to the CNPG operator. The cluster-level `Status` line is still accurate.
 
 ```bash
 kubectl cnpg psql homelab-db -n database -- -d forgejo  # superuser psql session on the primary

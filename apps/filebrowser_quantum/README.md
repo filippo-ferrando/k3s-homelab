@@ -20,4 +20,4 @@
 | `ingressroute.yaml` | 6 | Internal route (`websecure` + TLS), public route (`cf-public`) and the `public-ratelimit` middleware (60/min per `Cf-Connecting-Ip`). |
 | `networkpolicy.yaml` | - | Ingress only from the namespace itself and Traefik. Egress only to DNS and the namespace's own pods. |
 
-**Prerequisites:** the NFS exports on casper (`ansible/04_deploy_nfs_shares.yml`).
+**Prerequisites:** the NFS exports on casper (`ansible/provision/06_nfs.yml`).

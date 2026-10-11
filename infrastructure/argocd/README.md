@@ -1,6 +1,6 @@
 # argocd
 
-Argo CD manages **itself** through the [`argo-cd` Helm chart](https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd). `ansible/02_bootstrap_cluster.yml` installs the same chart, version and values once on a new cluster. From then on, the `argocd` Application below keeps it in sync with Git, and Renovate bumps the chart version.
+Argo CD manages **itself** through the [`argo-cd` Helm chart](https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd). `ansible/provision/05_argocd.yml` installs the same chart, version and values once on a new cluster. From then on, the `argocd` Application below keeps it in sync with Git, and Renovate bumps the chart version.
 
 - **Namespace:** `argocd`
 - **URL:** `https://argocd.internal.fferrando.cc` (LAN only)
