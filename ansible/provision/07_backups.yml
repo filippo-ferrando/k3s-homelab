@@ -1,0 +1,71 @@
+---
+- name: Deploy Borg backup jobs
+  hosts: borg_backup
+  become: true
+  vars:
+    nfs_server_ip: "{{ hostvars[groups['nfs_storage'][0]]['ansible_host'] }}"
+    backup_user: magi
+    # Read by the script through BORG_PASSCOMMAND. Created by hand, never in Git;
+    # this playbook only enforces its permissions. The repository path is in the script.
+    borg_passphrase_file: /home/magi/.bak_psw
+    jobs:
+      - script_path: "{{ inventory_dir }}/scripts/borg_backup_personal.sh"
+        remote_path: /usr/local/bin/borg-backup.sh
+        cron_schedule: "0 2 */2 * *"
+        name: personal data
+  tasks:
+    # Two steps: borgbackup only resolves once EPEL is installed
+    # (in --check mode the second task fails while EPEL is still missing)
+    - name: Install EPEL
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+
+    - name: Install Borg
+      ansible.builtin.dnf:
+        name: borgbackup
+        state: present
+
+    - name: Restrict the repository passphrase file to its owner
+      ansible.builtin.file:
+        path: "{{ borg_passphrase_file }}"
+        state: file
+        owner: "{{ backup_user }}"
+        group: "{{ backup_user }}"
+        mode: "0600"
+
+    - name: Create the backup source mount point
+      ansible.builtin.file:
+        path: /mnt/casper-data
+        state: directory
+        mode: "0755"
+
+    - name: Mount the read-only /mnt/vault export
+      ansible.posix.mount:
+        path: /mnt/casper-data
+        src: "{{ nfs_server_ip }}:/mnt/vault"
+        fstype: nfs
+        opts: nfsvers=4.2,ro,hard,timeo=600,retrans=5,_netdev
+        state: mounted
+
+    - name: Push backup scripts
+      ansible.builtin.copy:
+        src: "{{ item.script_path }}"
+        dest: "{{ item.remote_path }}"
+        owner: "{{ backup_user }}"
+        group: "{{ backup_user }}"
+        mode: "0755"
+      loop: "{{ jobs }}"
+
+    - name: Schedule backup cron jobs
+      ansible.builtin.cron:
+        name: "{{ item.name }}"
+        user: "{{ backup_user }}"
+        minute: "{{ item.cron_schedule.split()[0] }}"
+        hour: "{{ item.cron_schedule.split()[1] }}"
+        day: "{{ item.cron_schedule.split()[2] }}"
+        month: "{{ item.cron_schedule.split()[3] }}"
+        weekday: "{{ item.cron_schedule.split()[4] }}"
+        job: "{{ item.remote_path }}"
+        state: present
+      loop: "{{ jobs }}"

@@ -9,3 +9,10 @@ ansible_become_password: !vault |
           35383761633335353663333439626538313965373037643536383737323439343237663239313165
           3834383263303238390a313137323232383164643731353738623562623931346162393830616436
           6430
+
+# Installed by provision/04_k3s.yml, upgraded to by patch_cluster.yml.
+# Upgrade at most one Kubernetes minor version at a time. Renovate bumps it.
+k3s_version: v1.36.3+k3s1
+
+pod_cidr: 10.42.0.0/16
+service_cidr: 10.43.0.0/16

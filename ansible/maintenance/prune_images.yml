@@ -4,7 +4,6 @@
   become: true
   tasks:
     - name: Prune unused container images via crictl
-      ansible.builtin.shell: |
-        /usr/local/bin/crictl rmi --prune
+      ansible.builtin.command: /usr/local/bin/crictl rmi --prune
       register: crictl_result
       changed_when: "'Deleted:' in crictl_result.stdout"

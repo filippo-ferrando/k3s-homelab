@@ -159,16 +159,17 @@ k3s-homelab/
 │   ├── kubecraft/
 │   └── portfolio/
 ├── ansible/                      # Bare-metal provisioning & day-2 host operations
-│   ├── 01_os_prep.yml
-│   ├── 02_bootstrap_cluster.yml
-│   ├── 03_deploy_borg_backups.yml
-│   ├── 04_deploy_nfs_shares.yml
-│   ├── patch_cluster.yml
-│   ├── prune_cached_images.yml
+│   ├── site.yml                  # full install, imports provision/01..07
+│   ├── provision/                # os, firewall, tailscale, k3s, argocd, nfs, backups
+│   ├── patch_cluster.yml         # OS updates + k3s upgrade
+│   ├── maintenance/              # patch_os, upgrade_k3s, prune_images
 │   ├── inventory.ini
 │   ├── group_vars/all.yml
 │   └── scripts/                  # Borg backup script pushed to magi
 ├── notes/                        # kubectl wiki, guides, security audits (see notes/README.md)
+├── ci/                           # CI checks: policy script, chart rendering (see ci/README.md)
+├── .github/workflows/ci.yml      # CI: gitleaks, policy, kubeconform, chart rendering, ansible, trivy
+├── .gitleaks.toml                # Secret scanning rules (SealedSecret ciphertext allowed)
 ├── CHANGELOG.md                  # Major changes and why they were made
 └── renovate.json                 # Automated dependency updates (Helm charts + container images)
 ```
@@ -337,7 +338,7 @@ flowchart LR
     NFSMount["casper NFS export /mnt/vault\n(read-only, mounted at\n/mnt/casper-data on magi)"] --> Script
 ```
 
-- Host-level Borg backups run from cron on `magi` (every 2 days at 02:00), deployed by `03_deploy_borg_backups.yml`. They run deliberately outside the cluster, so backups keep working even if the cluster is unhealthy.
+- Host-level Borg backups run from cron on `magi` (every 2 days at 02:00), deployed by `ansible/provision/07_backups.yml`. They run deliberately outside the cluster, so backups keep working even if the cluster is unhealthy.
 - Each run pushes metrics (overall status, per-stage exit codes, duration, last-success timestamp) to the in-cluster **Pushgateway**, so backup health shows up in Grafana next to every other cluster metric.
 - The source data is a **read-only** NFS export (`/mnt/vault`, mounted at `/mnt/casper-data` on `magi`), so the backup host never has write access to the live share.
 
@@ -365,8 +366,8 @@ Sealing recipes and the full secret inventory: [`notes/kubectl.md`](notes/kubect
 ## Automated maintenance
 
 - **Kured** watches for the reboot-sentinel file and reboots nodes one at a time during a nightly window (01:00 to 05:00 Europe/Rome). A custom `drainPodSelector` works around a known Longhorn PDB deadlock ([longhorn/longhorn#5910](https://github.com/longhorn/longhorn/issues/5910)), where instance-manager/CSI-sidecar PodDisruptionBudgets can otherwise block drains forever.
-- **`patch_cluster.yml`** (Ansible) runs `dnf update` on every node and creates Kured's reboot sentinel when `needs-restarting -r` says a reboot is needed. Patching and rebooting are decoupled: Ansible patches, Kured decides when it's safe to reboot.
-- **`prune_cached_images.yml`** (Ansible) runs `crictl rmi --prune` across the cluster to reclaim disk from unused images.
+- **`patch_cluster.yml`** (Ansible) runs `dnf update` on every node and creates Kured's reboot sentinel when `needs-restarting -r` says a reboot is needed, then upgrades k3s node by node to the pinned `k3s_version` (Renovate bumps it). Patching and rebooting are decoupled: Ansible patches, Kured decides when it's safe to reboot.
+- **`maintenance/prune_images.yml`** (Ansible) runs `crictl rmi --prune` across the cluster to reclaim disk from unused images.
 - **descheduler** runs as a CronJob every 2 hours to rebalance the cluster (duplicate pods, anti-affinity violations, uneven utilization), mainly after Kured reboots leave pods piled on the nodes that stayed up.
 - **Renovate** opens PRs for new image and Helm chart versions.
 - Every node is joined to a **Tailscale** tailnet with SSH enabled during OS prep, giving management access independent of the LAN or any in-cluster service.

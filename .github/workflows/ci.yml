@@ -1,0 +1,128 @@
+# Checks every push to main and every pull request (Renovate's included) before Argo CD applies it.
+# Blocking jobs: secrets, policy, manifests, charts, ansible. Report-only: misconfig (GitHub Security tab).
+# Actions are pinned to commit SHAs and tools to exact image tags; Renovate keeps both current.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+
+jobs:
+  secrets:
+    name: secrets (gitleaks, full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: docker://ghcr.io/gitleaks/gitleaks:v8.30.1
+        with:
+          args: git --config .gitleaks.toml --redact --verbose --exit-code 1 .
+
+  policy:
+    name: policy (no plaintext Secrets, pinned images, limits, netpols)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install pyyaml==6.0.3
+      - run: python3 ci/check_manifests.py
+
+  manifests:
+    name: manifests (kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Strict, and no -ignore-missing-schemas: a resource without a schema fails instead of being skipped.
+      # values.yaml files are Helm values, not manifests.
+      - uses: docker://ghcr.io/yannh/kubeconform:v0.8.0
+        with:
+          args: >-
+            -strict -summary -output text
+            -ignore-filename-pattern values\.yaml$
+            -schema-location default -schema-location ${{ env.CRD_SCHEMAS }}
+            apps infrastructure system
+
+  charts:
+    name: charts (helm template + kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.0
+      - run: pip install pyyaml==6.0.3
+      # Renders every chart Application with its values, as Argo CD would
+      - run: python3 ci/render_charts.py rendered
+      # Chart CRDs have no schema to validate against; every other rendered resource is checked strictly
+      - uses: docker://ghcr.io/yannh/kubeconform:v0.8.0
+        with:
+          args: >-
+            -strict -summary -output text
+            -skip CustomResourceDefinition
+            -schema-location default -schema-location ${{ env.CRD_SCHEMAS }}
+            rendered
+
+  ansible:
+    name: ansible (syntax check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install ansible-core==2.21.4
+      - run: ansible-galaxy collection install -r ansible/requirements.yml
+      # --syntax-check needs no vault password and no connection to the nodes
+      - run: |
+          for p in ansible/site.yml ansible/patch_cluster.yml ansible/maintenance/prune_images.yml; do
+            ansible-playbook --syntax-check -i ansible/inventory.ini "$p"
+          done
+
+  misconfig:
+    name: misconfig (trivy, report only)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Never fails the build: known findings (root containers, writable root filesystems) are tracked
+      # in notes/security/. New ones show up in the Security tab and as annotations on the PR.
+      - uses: docker://ghcr.io/aquasecurity/trivy:0.75.0
+        with:
+          args: >-
+            config --quiet --exit-code 0
+            --skip-dirs ansible --skip-dirs ci --skip-dirs notes
+            --format sarif --output trivy.sarif .
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-config

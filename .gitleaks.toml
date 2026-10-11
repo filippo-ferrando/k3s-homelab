@@ -1,0 +1,14 @@
+# gitleaks: default rules, plus one exception for SealedSecret ciphertext.
+# SealedSecret values are RSA-OAEP + AES-GCM blobs encrypted for the cluster's controller key:
+# base64 starting with "Ag", hundreds of characters long. The default generic-api-key rule
+# flags them because they sit next to keys like "password:" or "token:".
+# The exception matches the value, not the file: a plaintext secret pasted into a
+# sealed-secret file is still reported.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "SealedSecret ciphertext (safe to commit: only the in-cluster controller can decrypt it)"
+regexTarget = "secret"
+regexes = ['''^Ag[A-Za-z0-9+/]{300,}={0,2}$''']

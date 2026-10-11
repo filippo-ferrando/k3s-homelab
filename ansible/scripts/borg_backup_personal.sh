@@ -1,4 +1,10 @@
 #!/bin/bash
+# Borg backup of the read-only casper share (/mnt/casper-data), metrics pushed to the Pushgateway.
+# borg reads BORG_REPO and BORG_PASSCOMMAND natively, so the commands below never name the repository.
+# Both can be overridden from the environment (e.g. to test against another repository).
+export BORG_REPO="${BORG_REPO:-/mnt/data/backup-casper}"
+export BORG_PASSCOMMAND="${BORG_PASSCOMMAND:-cat /home/magi/.bak_psw}"
+
 PUSHGATEWAY_URL="https://pushgateway.internal.fferrando.cc"
 JOB_NAME="personal_files"
 INSTANCE_NAME=$(hostname)
@@ -12,7 +18,7 @@ borg create \
   --show-rc \
   --compression zstd \
   --exclude '**/appdata_*' \
-  $REPO::'{hostname}-{now:%Y-%m-%d}' \
+  '::{hostname}-{now:%Y-%m-%d}' \
   /mnt/casper-data
 CREATE_EXIT=$?
 
@@ -20,24 +26,22 @@ borg prune \
   --list \
   --keep-daily=5 \
   --keep-weekly=3 \
-  --keep-monthly=3 \
-  $REPO
+  --keep-monthly=3
 PRUNE_EXIT=$?
 
-borg compact $REPO
+borg compact
 COMPACT_EXIT=$?
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-# Fixed: Changed $CHECK_EXIT to $COMPACT_EXIT
 if [ $CREATE_EXIT -eq 0 ] && [ $PRUNE_EXIT -eq 0 ] && [ $COMPACT_EXIT -eq 0 ]; then
   STATUS=1
   LAST_SUCCESS=$END_TIME
 else
   STATUS=0
   LAST_SUCCESS=0
-fi # Fixed: Added missing 'fi'
+fi
 
 cat <<EOF | curl --data-binary @- -s "${PUSHGATEWAY_URL}/metrics/job/${JOB_NAME}/instance/${INSTANCE_NAME}"
 # HELP backup_status Overall success of the backup (1=success, 0=failure)
@@ -60,4 +64,5 @@ backup_duration_seconds ${DURATION}
 backup_last_success_timestamp_seconds ${LAST_SUCCESS}
 EOF
 
-exit 0
+# Non-zero on failure, so cron (and a manual run) shows it
+[ "$STATUS" -eq 1 ]

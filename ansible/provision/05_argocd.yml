@@ -1,0 +1,51 @@
+---
+# Bootstrap only: installs Argo CD if it isn't there yet. From then on Argo CD manages itself
+# (infrastructure/argocd/), and re-applying from here would fight its field ownership.
+- name: Deploy Argo CD
+  hosts: k3s_servers[0]
+  become: true
+  vars:
+    # Same chart, version and values that Argo CD then manages itself with
+    argocd_dir: "{{ inventory_dir }}/../infrastructure/argocd"
+    argocd_chart: "{{ (lookup('file', argocd_dir + '/application.yaml') | from_yaml).spec.sources[0] }}"
+  tasks:
+    - name: Wait for K3s API server to become ready
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 6443
+        delay: 5
+        timeout: 60
+
+    - name: Check whether Argo CD is already installed
+      ansible.builtin.command: /usr/local/bin/k3s kubectl -n argocd get deployment argocd-server
+      register: argocd_installed
+      failed_when: false
+      changed_when: false
+      check_mode: false
+
+    - name: Install Argo CD
+      when: argocd_installed.rc != 0
+      block:
+        - name: Create Argo CD namespace
+          ansible.builtin.command: /usr/local/bin/k3s kubectl create namespace argocd
+          register: create_ns
+          failed_when: "create_ns.rc != 0 and 'AlreadyExists' not in create_ns.stderr"
+          changed_when: "create_ns.rc == 0"
+
+        - name: Render the Argo CD chart (on the laptop, needs helm)
+          ansible.builtin.command: >-
+            helm template argocd {{ argocd_chart.chart }}
+            --repo {{ argocd_chart.repoURL }}
+            --version {{ argocd_chart.targetRevision }}
+            --namespace argocd
+            --values {{ argocd_dir }}/values.yaml
+          delegate_to: localhost
+          become: false
+          register: argocd_manifests
+          changed_when: false
+
+        - name: Apply Argo CD manifests
+          ansible.builtin.command: /usr/local/bin/k3s kubectl apply --server-side -n argocd -f -
+          args:
+            stdin: "{{ argocd_manifests.stdout }}"
+          changed_when: true

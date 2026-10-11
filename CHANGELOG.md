@@ -6,6 +6,34 @@ Newest first.
 
 ---
 
+## 2026-10-12: CI on every push and pull request
+
+**What**
+- Added `.github/workflows/ci.yml` with six jobs: gitleaks over the full Git history, a repo policy check (`ci/check_manifests.py`), strict kubeconform on all manifests, `helm template` of every chart Application plus kubeconform on the output (`ci/render_charts.py`), an Ansible syntax check, and a report-only trivy misconfiguration scan uploaded to the GitHub Security tab.
+- `.gitleaks.toml` allows SealedSecret ciphertext by value pattern, so a plaintext secret in a sealed-secret file is still caught.
+- `ansible/requirements.yml` pins the Ansible collections.
+- Actions are pinned to commit SHAs and tools to exact image tags; Renovate updates them, including the `pip` pins and the Helm version through two new custom managers.
+- Pinned `redis:alpine` to `redis:8.10.2-alpine` in LibrePhotos (the version already running).
+
+**Why**
+- Changes, including Renovate PRs, reached the cluster without any check: a broken chart bump or a plaintext Secret would only show up after Argo CD applied it.
+- The repo is public: the first full-history scan confirmed that no secret has ever been committed (all 36 matches were SealedSecret ciphertext).
+
+## 2026-10-11: Ansible split, firewall and NFS lockdown, k3s upgrades
+
+**What**
+- Split the four monolithic playbooks into `ansible/provision/01..07` (os, firewall, tailscale, k3s, argocd, nfs, backups) and `ansible/maintenance/` (patch_os, upgrade_k3s, prune_images), with `site.yml` and `patch_cluster.yml` as entry points. Every playbook is idempotent; the Tailscale and Kured-sentinel tasks no longer report changes on every run.
+- Firewall: only the node IPs, pod/service CIDRs and `tailscale0` are trusted. The rest of the LAN keeps `ssh`, `cockpit`, `6443` and the ServiceLB ports; kubelet, etcd, flannel and NFS are closed to it.
+- NFS: the rw shares are exported only to the node IPs, and `/mnt/vault` is exported `ro,root_squash` only to the backup host.
+- k3s is pinned (`k3s_version` in `group_vars/all.yml`). `patch_cluster.yml` now also upgrades it, node by node, and Renovate opens one PR per Kubernetes minor. New installs run with `--secrets-encryption`.
+- Argo CD bootstrap is skipped when Argo CD already exists, so a re-run can't fight its self-management.
+- Fixed the backup playbook's host (`magi.rdfilippo.homelab` did not exist; it now targets the new `borg_backup` group).
+
+**Why**
+- Any LAN device could reach every node port, and write to the NFS shares as root.
+- `dnf update` never upgraded k3s: the binary isn't an RPM.
+- Smaller playbooks can be run and tested one concern at a time.
+
 ## 2026-10-11: Argo CD manages itself
 
 **What**

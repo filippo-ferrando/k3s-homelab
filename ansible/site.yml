@@ -1,0 +1,9 @@
+---
+# Full provisioning, in order. Every playbook is idempotent and can also be run on its own.
+- import_playbook: provision/01_os.yml
+- import_playbook: provision/02_firewall.yml
+- import_playbook: provision/03_tailscale.yml
+- import_playbook: provision/04_k3s.yml
+- import_playbook: provision/05_argocd.yml
+- import_playbook: provision/06_nfs.yml
+- import_playbook: provision/07_backups.yml

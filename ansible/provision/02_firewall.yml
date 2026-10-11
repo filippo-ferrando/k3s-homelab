@@ -1,0 +1,112 @@
+---
+# Only the nodes themselves, the pod/service networks and the tailnet are trusted.
+# The rest of the LAN lands in the public zone and reaches only the ports listed below.
+- name: Configure firewalld
+  hosts: k3s_cluster
+  become: true
+  vars:
+    node_ips: "{{ groups['k3s_cluster'] | map('extract', hostvars, 'ansible_host') | list }}"
+    trusted_sources: "{{ [pod_cidr, service_cidr] + node_ips }}"
+    # The whole LAN used to be trusted: every node port (kubelet, etcd, NFS, ...) was open to any LAN device
+    removed_trusted_sources:
+      - 192.168.10.0/24
+    # ssh and cockpit stay reachable so a mistake here can't lock Ansible out
+    public_services:
+      - ssh
+      - cockpit
+    # kubectl from the laptop, plus the ServiceLB ports (Traefik web/websecure/ssh, kubecraft mc-router).
+    # ServiceLB traffic is DNATed to pods and filtered as forwarded traffic (see "intra-zone forwarding"),
+    # so these entries only matter if that ever changes. 9443 (cf-public) is deliberately not listed.
+    public_ports:
+      - 6443/tcp
+      - 80/tcp
+      - 443/tcp
+      - 2222/tcp
+      - 25565/tcp
+    # Opened to the whole LAN by the old os_prep playbook; nodes reach them through the trusted zone now
+    removed_public_ports:
+      - 10250/tcp
+      - 8472/udp
+      - 2379-2380/tcp
+  tasks:
+    - name: Install firewalld
+      ansible.builtin.dnf:
+        name: firewalld
+        state: present
+
+    - name: Enable and start firewalld
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Trust the nodes, the pod and the service networks
+      ansible.posix.firewalld:
+        zone: trusted
+        source: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ trusted_sources }}"
+
+    - name: Trust the Tailscale interface (management access)
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: tailscale0
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Stop trusting the whole LAN
+      ansible.posix.firewalld:
+        zone: trusted
+        source: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop: "{{ removed_trusted_sources }}"
+
+    - name: Allow management services from the LAN
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ public_services }}"
+
+    - name: Allow cluster entry ports from the LAN
+      ansible.posix.firewalld:
+        zone: public
+        port: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ public_ports }}"
+
+    - name: Close node-internal ports to the LAN
+      ansible.posix.firewalld:
+        zone: public
+        port: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop: "{{ removed_public_ports }}"
+
+    # LAN -> ServiceLB hostPort -> pod is forwarded from the public zone back into it
+    # (pod interfaces are in the default zone): without this, LAN clients can't reach Traefik
+    - name: Enable intra-zone forwarding in the public zone
+      ansible.posix.firewalld:
+        zone: public
+        forward: true
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Enable masquerading for pod routing
+      ansible.posix.firewalld:
+        zone: public
+        masquerade: true
+        permanent: true
+        immediate: true
+        state: enabled

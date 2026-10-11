@@ -1,0 +1,107 @@
+---
+# Installs k3s k3s_version on nodes that don't have it yet; nodes that do are left alone
+# (upgrades: patch_cluster.yml). Servers get secrets-encryption in /etc/rancher/k3s/config.yaml,
+# so Secrets are encrypted at rest in etcd from the first write. On an already running cluster
+# the file alone does nothing until encryption is enabled by hand (notes/guides/patch_running_cluster.md).
+- name: Initialize First K3s Server
+  hosts: k3s_servers[0]
+  become: true
+  tasks:
+    - name: Create the k3s config directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Enable secrets encryption in the k3s server config
+      ansible.builtin.lineinfile:
+        path: /etc/rancher/k3s/config.yaml
+        regexp: "^secrets-encryption:"
+        line: "secrets-encryption: true"
+        create: true
+        mode: "0600"
+
+    - name: Install K3s (Cluster Init)
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server \
+          --cluster-init \
+          --selinux \
+          --prefer-bundled-bin \
+          --flannel-iface={{ ansible_default_ipv4.interface }} \
+          --node-ip={{ ansible_host }} \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml
+
+    - name: Get K3s Node Token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token
+
+    - name: Store token as fact
+      ansible.builtin.set_fact:
+        k3s_token: "{{ node_token['content'] | b64decode | trim }}"
+
+- name: Join Remaining K3s Servers
+  hosts: k3s_servers[1:]
+  serial: 1
+  become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
+  tasks:
+    - name: Create the k3s config directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Enable secrets encryption in the k3s server config
+      ansible.builtin.lineinfile:
+        path: /etc/rancher/k3s/config.yaml
+        regexp: "^secrets-encryption:"
+        line: "secrets-encryption: true"
+        create: true
+        mode: "0600"
+
+    - name: Join K3s cluster as Server
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }}" sh -s - server \
+          --server "https://{{ k3s_primary_ip }}:6443" \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables \
+          --disable traefik \
+          {% if k3s_taint is defined %}--node-taint {{ k3s_taint }}{% endif %}
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml
+
+- name: Join K3s Agents
+  hosts: k3s_agents
+  become: true
+  vars:
+    k3s_primary_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
+  tasks:
+    - name: Join K3s cluster as Agent
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_URL="https://{{ k3s_primary_ip }}:6443" K3S_TOKEN="{{ hostvars[groups['k3s_servers'][0]]['k3s_token'] }}" sh -s - agent \
+          --selinux \
+          --prefer-bundled-bin \
+          --kube-proxy-arg=proxy-mode=nftables
+      args:
+        creates: /etc/rancher/k3s/k3s-agent.env
+
+- name: Report secrets encryption status
+  hosts: k3s_servers[0]
+  become: true
+  tasks:
+    - name: Read secrets encryption status
+      ansible.builtin.command: /usr/local/bin/k3s secrets-encrypt status
+      register: secrets_encrypt_status
+      changed_when: false
+      check_mode: false
+
+    - name: Show secrets encryption status
+      ansible.builtin.debug:
+        var: secrets_encrypt_status.stdout_lines

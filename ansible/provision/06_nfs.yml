@@ -1,0 +1,70 @@
+---
+- name: Install NFS utilities on all nodes
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Install nfs-utils package
+      ansible.builtin.dnf:
+        name: nfs-utils
+        state: present
+
+- name: Setup NFS exports on the storage node
+  hosts: nfs_storage
+  become: true
+  vars:
+    # Pods mount the shares through the node they run on, so only node IPs need access
+    node_ips: "{{ groups['k3s_cluster'] | map('extract', hostvars, 'ansible_host') | list }}"
+    backup_ips: "{{ groups['borg_backup'] | map('extract', hostvars, 'ansible_host') | list }}"
+    # ponytail: no_root_squash on the rw shares because most app containers still write as root
+    # (security audit H8); switch to root_squash once they run as non-root
+    cluster_rw_options: rw,sync,no_subtree_check,no_root_squash
+    nfs_exports:
+      - path: /mnt/vault/git
+        clients: "{{ node_ips }}"
+        options: "{{ cluster_rw_options }}"
+      - path: /mnt/vault/data
+        clients: "{{ node_ips }}"
+        options: "{{ cluster_rw_options }}"
+      - path: /mnt/media
+        clients: "{{ node_ips }}"
+        options: "{{ cluster_rw_options }}"
+      # Read-only source for the Borg backups; the backup runs as an unprivileged user
+      - path: /mnt/vault
+        clients: "{{ backup_ips }}"
+        options: ro,sync,no_subtree_check,root_squash
+  tasks:
+    - name: Configure /etc/exports
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        regexp: "^\\s*{{ item.path | regex_escape }}\\s"
+        line: "{{ item.path }} {{ item.clients | map('regex_replace', '$', '(' ~ item.options ~ ')') | join(' ') }}"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ nfs_exports }}"
+      notify: Re-export NFS shares
+
+    - name: Enable and start NFS server service
+      ansible.builtin.systemd_service:
+        name: nfs-server
+        state: started
+        enabled: true
+
+    # Clients are all nodes, which reach NFS through the trusted zone (provision/02_firewall.yml)
+    - name: Close NFS to the rest of the LAN
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop:
+        - nfs
+        - rpc-bind
+        - mountd
+
+  handlers:
+    - name: Re-export NFS shares
+      ansible.builtin.command: exportfs -ra
+      changed_when: true

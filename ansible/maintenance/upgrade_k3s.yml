@@ -1,0 +1,46 @@
+---
+# Brings every node to k3s_version (group_vars/all.yml), one node at a time, servers first
+# (inventory order). The binary is swapped in place and the service restarted: running pods
+# keep running across a k3s restart, so no drain is needed. Up-to-date nodes are untouched.
+# dnf can't do this: /usr/local/bin/k3s is not an RPM (the Rancher repo only ships k3s-selinux).
+- name: Upgrade k3s
+  hosts: k3s_servers:k3s_agents
+  serial: 1
+  become: true
+  vars:
+    k3s_release_url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | urlencode }}"
+    k3s_service: "{{ 'k3s' if inventory_hostname in groups['k3s_servers'] else 'k3s-agent' }}"
+    # Another server answers for this node while its own k3s restarts
+    k3s_api_host: "{{ groups['k3s_servers'] | difference([inventory_hostname]) | first }}"
+  tasks:
+    - name: Install the k3s binary (skipped when the checksum already matches)
+      ansible.builtin.get_url:
+        url: "{{ k3s_release_url }}/k3s"
+        checksum: "sha256:{{ k3s_release_url }}/sha256sum-amd64.txt"
+        dest: /usr/local/bin/k3s
+        mode: "0755"
+      register: k3s_binary
+
+    - name: Restart k3s on the new version
+      when: k3s_binary is changed
+      block:
+        - name: Restore the SELinux label of the k3s binary
+          ansible.builtin.command: restorecon -v /usr/local/bin/k3s
+          register: restorecon
+          changed_when: restorecon.stdout | length > 0
+
+        - name: Restart k3s
+          ansible.builtin.systemd_service:
+            name: "{{ k3s_service }}"
+            state: restarted
+
+        - name: Wait for the node to be Ready on the new version
+          ansible.builtin.command: >-
+            /usr/local/bin/k3s kubectl get node {{ inventory_hostname }}
+            -o jsonpath='{.status.nodeInfo.kubeletVersion} {.status.conditions[?(@.type=="Ready")].status}'
+          delegate_to: "{{ k3s_api_host }}"
+          register: node_state
+          until: node_state.stdout == k3s_version ~ ' True'
+          retries: 30
+          delay: 10
+          changed_when: false
