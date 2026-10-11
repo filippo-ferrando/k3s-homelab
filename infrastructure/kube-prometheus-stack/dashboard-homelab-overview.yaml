@@ -1,5 +1,5 @@
 # Managed by GitOps, picked up by the Grafana sidecar (label grafana_dashboard, monitoring namespace).
-# Generated from notes/grafana_dashboard.json (Grafana v2 export) + the lastgasp row.
+# Originally generated from a Grafana v2 export; this file is now the source of truth.
 # UI edits are not persisted across restarts: export the JSON and update this file instead.
 apiVersion: v1
 kind: ConfigMap

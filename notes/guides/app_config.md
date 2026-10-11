@@ -1,4 +1,4 @@
-### Part 2: Modifying `app.ini` via GitOps
+# Managing app configuration the GitOps way
 
 To manage application configuration files without logging into containers, you have two options in Kubernetes.
 

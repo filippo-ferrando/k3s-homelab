@@ -15,7 +15,7 @@ reachable from the main LAN.
 
 ## 1. Cluster (repo)
 
-`infrastructure/traefik/values.yaml` — add a dedicated entrypoint under `ports:`:
+`infrastructure/traefik/values.yaml`: add a dedicated entrypoint under `ports:`:
 
 ```yaml
   # Main home LAN (192.168.1.0/24) via OPNsense WAN port forward 443 -> node:8444
@@ -26,7 +26,7 @@ reachable from the main LAN.
     exposedPort: 8444
 ```
 
-`apps/jellyfin/ingressroute.yaml` — attach `jellyfin-internal` to it:
+`apps/jellyfin/ingressroute.yaml`: attach `jellyfin-internal` to it:
 
 ```yaml
 spec:

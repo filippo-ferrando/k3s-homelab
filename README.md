@@ -1,21 +1,24 @@
 # k3s-homelab
 
-A self-hosted, GitOps-driven Kubernetes homelab. The entire cluster — from bare-metal OS prep to running applications — is defined as code and reconciled continuously by Argo CD. Nothing is deployed by hand: Ansible provisions the hosts and bootstraps the cluster once, then Git becomes the single source of truth.
+A self-hosted, GitOps-driven Kubernetes homelab. The entire cluster, from bare-metal OS prep to running applications, is defined as code and reconciled continuously by Argo CD. Nothing is deployed by hand: Ansible provisions the hosts and bootstraps the cluster once, then Git becomes the single source of truth.
+
+Every folder under `apps/` and `infrastructure/` has its own `README.md` describing each file. Major changes and the reasons behind them are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## At a glance
 
 | | |
 |---|---|
-| **Orchestration** | k3s (embedded etcd, 3-server HA control plane) |
+| **Orchestration** | k3s (embedded etcd, 3-server HA control plane, SELinux enabled) |
 | **GitOps engine** | Argo CD (app-of-apps pattern) |
 | **Ingress** | Traefik (DaemonSet) + Cloudflare Tunnel |
 | **TLS** | cert-manager + Let's Encrypt (Cloudflare DNS-01) |
 | **Storage** | Longhorn (distributed block) + NFS (bulk media/data) |
 | **Database** | CloudNativePG (HA Postgres, 3 instances) |
 | **Secrets** | Bitnami Sealed Secrets |
-| **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway |
-| **Maintenance** | Kured (reboot orchestration) + descheduler + Ansible patch playbooks |
-| **Backups** | Borg, pushed to Prometheus via Pushgateway |
+| **Security** | NetworkPolicies (ingress + egress) on every namespace, Pod Security Admission, Falco runtime detection |
+| **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway + lastgasp (node kernel logs) |
+| **Maintenance** | Kured (reboot orchestration) + descheduler + Ansible patch playbooks + Renovate |
+| **Backups** | Borg on the host, metrics pushed to Prometheus via Pushgateway |
 | **Provisioning** | Ansible (OS prep, k3s bootstrap, NFS, backup jobs) |
 
 ---
@@ -26,12 +29,15 @@ A self-hosted, GitOps-driven Kubernetes homelab. The entire cluster — from bar
 flowchart TB
     subgraph Internet["Internet"]
         Users["Users"]
+        Players["Minecraft players"]
     end
 
     subgraph CF["Cloudflare"]
         CFTunnel["Cloudflare Tunnel\n(Zero Trust)"]
         DNS["DNS + Proxy"]
     end
+
+    Playit["playit.gg\n(TCP tunnel)"]
 
     subgraph LAN["Home LAN (192.168.10.0/24)"]
         subgraph Cluster["k3s Cluster"]
@@ -57,6 +63,7 @@ flowchart TB
 
     Users -->|HTTPS public hostnames| DNS --> CFTunnel --> Traefik
     Users -->|HTTPS *.internal.fferrando.cc\nLAN / Tailscale| Traefik
+    Players --> Playit --> Apps
     Traefik --> Apps
     Apps --> CNPG
     Apps --> Longhorn
@@ -70,12 +77,12 @@ flowchart TB
 
 | Host | IP | k3s role | Notes |
 |---|---|---|---|
-| `magi` | `192.168.10.100` | server (cluster-init) | Control-plane, tainted `NoSchedule` — runs only control-plane + tolerated system pods (Kured, etc.) |
+| `magi` | `192.168.10.100` | server (cluster-init) | Control plane, tainted `NoSchedule`: runs only control-plane and tolerating system pods (Kured, Falco, device plugin). Also runs the Borg backup cron. |
 | `balthazar` | `192.168.10.102` | server | Also schedulable compute node |
 | `caelium` | `192.168.10.103` | server | Also schedulable compute node |
-| `casper` | `192.168.10.101` | agent | Dedicated NFS server (`/mnt/vault`, `/mnt/media`), no control-plane role |
+| `casper` | `192.168.10.101` | agent | NFS server (`/mnt/vault`, `/mnt/media`), no control-plane role |
 
-k3s runs with embedded etcd across all three servers (`--cluster-init`), `nftables` kube-proxy mode, and the bundled Traefik disabled in favor of the Helm-managed Traefik deployed through Argo CD. Every node is also joined to a Tailscale tailnet for out-of-band SSH access.
+k3s runs with embedded etcd across all three servers (`--cluster-init`), `--selinux`, `nftables` kube-proxy mode, and the bundled Traefik disabled in favor of the Helm-managed Traefik deployed through Argo CD. Every node is also joined to a Tailscale tailnet for out-of-band SSH access.
 
 ---
 
@@ -87,34 +94,34 @@ Everything under `infrastructure/` and `apps/` is managed by two root Argo CD `A
 flowchart LR
     RootInfra["Application:\nroot-infrastructure\n(sync-wave -1)\npath: infrastructure/"]
     RootApps["Application:\nroot-apps\n(sync-wave 1)\npath: apps/"]
-    Infra["infrastructure/*\nHelm charts + raw manifests\n(cert-manager, Longhorn, Traefik,\ncloudflared, CNPG operator,\nmonitoring, sealed-secrets, ...)"]
-    AppsDir["apps/*\nWorkload manifests\n(forgejo, jellyfin, vaultwarden, ...)"]
+    Infra["infrastructure/*\nHelm charts + raw manifests\n(cert-manager, Longhorn, Traefik,\ncloudflared, CNPG operator,\nmonitoring, Falco, lastgasp, ...)"]
+    AppsDir["apps/*\nWorkload manifests\n(forgejo, jellyfin, kubecraft, ...)"]
 
     kubectl["kubectl apply\n(one-time bootstrap)"] --> RootInfra & RootApps
     RootInfra -->|recurse: true| Infra
     RootApps -->|recurse: true| AppsDir
 ```
 
-Both roots use `directory.recurse: true`, so **any** manifest added under `infrastructure/` or `apps/` is picked up automatically — no per-app Argo CD `Application` needs to be registered by hand. Both sync with `automated: {prune: true, selfHeal: true}`, meaning drift is corrected automatically and deleting a manifest from Git deletes the resource from the cluster.
+Both roots use `directory.recurse: true`, so **any** manifest added under `infrastructure/` or `apps/` is picked up automatically, with no per-app Argo CD `Application` to register by hand. Helm-based components are themselves `Application` manifests inside those folders (multi-source, with `values.yaml` read from this repo). Both roots sync with `automated: {prune: true, selfHeal: true}`: drift is corrected automatically, and deleting a manifest from Git deletes the resource from the cluster.
 
 ### Sync-wave ordering
 
-Deployment order is controlled entirely through `argocd.argoproj.io/sync-wave` annotations, since dependencies (CRDs, storage classes, secrets, databases) must exist before the things that consume them:
+Deployment order is controlled through `argocd.argoproj.io/sync-wave` annotations, since dependencies (CRDs, storage classes, secrets, databases) must exist before the things that consume them:
 
 | Wave | Components |
 |---|---|
 | `-4` | Sealed Secrets, Longhorn |
-| `-3` | cert-manager, CloudNativePG operator, Traefik |
-| `-2` | Kured |
-| `-1` | `root-infrastructure`, kube-prometheus-stack, descheduler, Longhorn `storageclass-single` |
-| `0` | Argo CD server config, cloudflared |
-| `1` | `root-apps`, Pushgateway |
-| `2` | Argo CD ingress, cert-manager `ClusterIssuer`, Longhorn middleware/NetworkPolicy, CNPG `Cluster` (`homelab-db`) |
-| `3–4` | Per-app CNPG `DatabaseRole` / `Database` objects |
-| `5` | LibrePhotos multi-container stack |
-| `6` | Application `IngressRoute`s |
+| `-3` | cert-manager, CloudNativePG operator, Traefik, every `Namespace` |
+| `-2` | Kured, generic-device-plugin |
+| `-1` | `root-infrastructure`, kube-prometheus-stack, descheduler, `longhorn-single-replica` StorageClass, core sealed secrets (Cloudflare token, tunnel token, Longhorn auth) |
+| `0` | cloudflared, Argo CD server config, app PVCs/PVs, app sealed DB credentials |
+| `1` | `root-apps`, cert-manager `ClusterIssuer`, Pushgateway, Falco |
+| `2` | `Certificate`s, infra IngressRoutes and middlewares, CNPG `Cluster` (`homelab-db`) |
+| `3`, `4` | Per-app CNPG `DatabaseRole` / `Database` objects |
+| `5` | App Deployments and Services, lastgasp and kubecraft Applications |
+| `6` | App `IngressRoute`s and middlewares |
 
-This produces a **two-phase boot**: on a fresh cluster, `cloudflared` and `cert-manager` will briefly show errors because the Sealed Secrets they depend on haven't decrypted yet — this is expected and self-heals once secrets are sealed and pushed (see [Bootstrapping](#bootstrapping-a-new-cluster)).
+This produces a **two-phase boot**: on a brand-new cluster, `cloudflared` and `cert-manager` show errors until their sealed secrets are created and pushed. This is expected and self-heals (see [Bootstrapping](#bootstrapping-a-new-cluster)).
 
 ---
 
@@ -123,20 +130,23 @@ This produces a **two-phase boot**: on a fresh cluster, `cloudflared` and `cert-
 ```
 k3s-homelab/
 ├── system/
-│   └── root-app.yaml            # The two app-of-apps Argo CD Applications
+│   └── root-app.yaml             # The two app-of-apps Argo CD Applications
 ├── infrastructure/               # Cluster-wide platform services (one folder per component)
 │   ├── sealed-secrets/
 │   ├── longhorn/
 │   ├── cert-manager/
-│   ├── cloudnative-pg/           # CNPG operator only — the actual DB lives in apps/database
+│   ├── cloudnative-pg/           # CNPG operator only; the actual DB lives in apps/database
 │   ├── traefik/
 │   ├── cloudflared/
 │   ├── kured/
 │   ├── descheduler/
-│   ├── kube-prometheus-stack/
+│   ├── kube-prometheus-stack/    # also Grafana dashboards and the public status page
 │   ├── pushgateway/
+│   ├── falco/
+│   ├── lastgasp/
+│   ├── generic-device-plugin/    # exposes /dev/kmsg to the lastgasp agents
 │   └── argocd/                   # Argo CD's own ingress + config
-├── apps/                          # Workloads — one folder per application/namespace
+├── apps/                         # Workloads, one folder per application/namespace
 │   ├── database/                 # Shared CloudNativePG Postgres cluster
 │   ├── forgejo/
 │   ├── jellyfin/
@@ -145,8 +155,9 @@ k3s-homelab/
 │   ├── hedgedoc/
 │   ├── filebrowser_quantum/
 │   ├── vibravid/
+│   ├── kubecraft/
 │   └── portfolio/
-├── ansible/                       # Bare-metal provisioning & day-2 host operations
+├── ansible/                      # Bare-metal provisioning & day-2 host operations
 │   ├── 01_os_prep.yml
 │   ├── 02_bootstrap_cluster.yml
 │   ├── 03_deploy_borg_backups.yml
@@ -155,33 +166,36 @@ k3s-homelab/
 │   ├── prune_cached_images.yml
 │   ├── inventory.ini
 │   ├── group_vars/all.yml
-│   └── scripts/                  # Borg backup scripts pushed to hosts
-├── notes/                         # Runbooks (secret sealing, DB restore, config mgmt, kubeconfig)
-├── todo.md                        # Full step-by-step deployment guide
-└── renovate.json                  # Automated dependency updates (Helm charts + container images)
+│   └── scripts/                  # Borg backup script pushed to magi
+├── notes/                        # kubectl wiki, guides, security audits (see notes/README.md)
+├── CHANGELOG.md                  # Major changes and why they were made
+└── renovate.json                 # Automated dependency updates (Helm charts + container images)
 ```
 
-Every app folder follows the same convention: `namespace.yaml`, `deployment.yaml`, `service.yaml`, `ingressroute.yaml`, plus whatever storage/certificate/secret manifests it needs. Every infra folder is either a thin `Application` wrapper around an upstream Helm chart (with a companion `values.yaml`) or a set of raw manifests for things with no chart.
+App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.yaml`, `ingressroute.yaml`, `networkpolicy.yaml`, plus storage, certificate, database and sealed-secret manifests as needed. Infra folders are either a thin `Application` wrapper around an upstream Helm chart (with a companion `values.yaml`) or raw manifests for things with no chart.
 
 ---
 
 ## Infrastructure stack
 
-| Component | Purpose | Source | Version | Namespace |
-|---|---|---|---|---|
-| **Sealed Secrets** | Encrypts secrets so they're safe to commit to Git | `bitnami.github.io/sealed-secrets` | `2.19.3` | `kube-system` |
-| **Longhorn** | Distributed block storage / CSI, snapshots, UI | `charts.longhorn.io` | `1.12.1` | `longhorn-system` |
-| **cert-manager** | Automated TLS certs via ACME | `charts.jetstack.io` | `v1.21.1` | `cert-manager` |
-| **CloudNativePG** | Postgres operator (HA clusters, backups, failover) | `cloudnative-pg.github.io/charts` | `0.29.0` | `cnpg-system` |
-| **Traefik** | Ingress controller (DaemonSet), dashboard, metrics | `traefik.github.io/charts` | `41.4.0` | `traefik` |
-| **cloudflared** | Cloudflare Tunnel client — exposes public services without opening inbound ports | raw manifest | `2026.8.3` | `cloudflared` |
-| **Kured** | Coordinated node reboots after Kernel/RPM patching | `kubereboot.github.io/charts` | `6.1.0` | `kube-system` |
-| **descheduler** | Rebalances pods (bin-packing, anti-affinity, duplicates) via CronJob | `kubernetes-sigs.github.io/descheduler` | `0.36.0` | `kube-system` |
-| **kube-prometheus-stack** | Prometheus, Grafana, Alertmanager, node-exporter | `prometheus-community` | `89.2.3` | `monitoring` |
-| **Pushgateway** | Accepts metrics pushed from ephemeral jobs (Borg backups) | `prometheus-community` | `3.8.0` | `monitoring` |
-| **Argo CD** | GitOps controller (installed via Ansible, self-managed after) | upstream install manifest | `stable` | `argocd` |
+| Component | Purpose | Source | Namespace |
+|---|---|---|---|
+| **Sealed Secrets** | Encrypts secrets so they're safe to commit to Git | `bitnami.github.io/sealed-secrets` | `kube-system` |
+| **Longhorn** | Distributed block storage / CSI, snapshots, UI | `charts.longhorn.io` | `longhorn-system` |
+| **cert-manager** | Automated TLS certs via ACME | `charts.jetstack.io` | `cert-manager` |
+| **CloudNativePG** | Postgres operator (HA clusters, failover, declarative roles/databases) | `cloudnative-pg.github.io/charts` | `cnpg-system` |
+| **Traefik** | Ingress controller (DaemonSet), dashboard, metrics | `traefik.github.io/charts` | `traefik` |
+| **cloudflared** | Cloudflare Tunnel client: exposes public services without opening inbound ports | raw manifest | `cloudflared` |
+| **Kured** | Coordinated node reboots after OS patching | `kubereboot.github.io/charts` | `kube-system` |
+| **descheduler** | Rebalances pods (duplicates, anti-affinity, utilization) via CronJob | `kubernetes-sigs.github.io/descheduler` | `kube-system` |
+| **kube-prometheus-stack** | Prometheus, Grafana, Alertmanager, node-exporter | `prometheus-community` | `monitoring` |
+| **Pushgateway** | Accepts metrics pushed from host jobs (Borg backups) | `prometheus-community` | `monitoring` |
+| **Falco** | Runtime intrusion detection (modern eBPF) + Falcosidekick | `falcosecurity.github.io/charts` | `falco` |
+| **lastgasp** | Collects node kernel logs (`/dev/kmsg`) so a node's last messages before a crash survive | own chart, Forgejo OCI registry | `lastgasp` |
+| **generic-device-plugin** | Hands `/dev/kmsg` to lastgasp agents as a resource, so they don't run privileged | raw manifest | `kube-system` |
+| **Argo CD** | GitOps controller (installed via Ansible, configured from Git after) | upstream install manifest (`stable`) | `argocd` |
 
-Dependency versions across `infrastructure/**` and `apps/**` are kept current automatically by **Renovate** (`renovate.json`), which groups minor/patch bumps, labels infra vs. app PRs separately, and has custom rules for the Forgejo mirror and the portfolio's date-based image tags.
+Versions are pinned in each `application.yaml` / manifest and kept current by **Renovate** (`renovate.json`): minor and patch bumps are grouped, infra and app PRs are labelled separately, Forgejo image lookups are redirected away from rate-limited Codeberg, and the portfolio's date-based tags have their own versioning rule.
 
 ---
 
@@ -197,7 +211,7 @@ flowchart LR
     end
 
     subgraph Uses["Consumers"]
-        DB["CloudNativePG (homelab-db)\nPrometheus / Alertmanager / Grafana"]
+        DB["CloudNativePG (homelab-db)\nPrometheus / Alertmanager / Grafana\nkubecraft worlds"]
         Small["App config volumes\n(Vaultwarden, Jellyfin config,\nHedgedoc uploads, Vibravid config,\nLibrePhotos protected media)"]
         Bulk["Bulk media & documents\n(Jellyfin, Forgejo, LibrePhotos,\nFilebrowser, Vibravid)"]
     end
@@ -210,10 +224,10 @@ flowchart LR
     Bulk -.->|mounts| Casper
 ```
 
-- **`longhorn-single-replica`** (custom `StorageClass`, `numberOfReplicas: 1`) is used for stateful workloads that already have their own redundancy or where losing a replica's history is acceptable (Postgres — CNPG handles its own HA/backups — Prometheus/Alertmanager/Grafana, LibrePhotos protected-media cache). This trades Longhorn's replication overhead for lower resource use on a small cluster.
-- **`longhorn`** (default multi-replica class) backs smaller, higher-value single-instance app volumes (Vaultwarden vault, Jellyfin config, Filebrowser config).
-- **Static NFS PVs**, all served by `casper` (`192.168.10.101`) and mounted `ReadWriteMany` with `nfsvers=4.2`, back anything media/bulk-storage related: Jellyfin's library, Forgejo's git data, LibrePhotos' photo library, Filebrowser's shared folders, and Vibravid's downloads. Every NFS-backed app gets its own dedicated `PersistentVolume`/`PersistentVolumeClaim` pair pointing at a specific export path (e.g. `/mnt/media`, `/mnt/vault/git`, `/mnt/vault/data`).
-- A `NetworkPolicy` scopes Longhorn manager metrics so only Prometheus (in `monitoring`) can scrape port `9500`, and the Longhorn UI is protected by a Traefik `basicAuth` `Middleware` backed by a sealed secret.
+- **`longhorn-single-replica`** (custom `StorageClass`, `numberOfReplicas: 1`) is used where the workload has its own redundancy or the data is rebuildable: Postgres (CNPG replicates at the database level), Prometheus/Alertmanager/Grafana, kubecraft worlds, LibrePhotos protected media and Vibravid config. This avoids Longhorn's replication overhead on a small cluster.
+- **`longhorn`** (default, 3 replicas) backs smaller, higher-value single-instance app volumes (Vaultwarden data, Jellyfin config, Filebrowser config).
+- **Static NFS PVs**, all served by `casper` (`192.168.10.101`) and mounted `ReadWriteMany` with NFSv4, back bulk storage: Jellyfin's library, Forgejo's git data, LibrePhotos' photo library, Filebrowser's shared folders and Vibravid's downloads. Each NFS-backed app gets its own `PersistentVolume`/`PersistentVolumeClaim` pair pointing at a specific export (`/mnt/media`, `/mnt/vault/git`, `/mnt/vault/data`).
+- The Longhorn UI is protected by a Traefik `basicAuth` middleware backed by a sealed secret, and a `NetworkPolicy` lets only Prometheus scrape Longhorn manager metrics on `9500`.
 
 ---
 
@@ -230,7 +244,7 @@ flowchart TB
 
     PubUser -->|"*.fferrando.cc"| CF["Cloudflare\n(DNS-proxied, Zero Trust)"]
     CF --> Tunnel["cloudflared\n(outbound-only tunnel)"]
-    Tunnel -->|entrypoint: cf-public :9443| Traefik
+    Tunnel -->|"entrypoint: cf-public :9443 (HTTP)"| Traefik
 
     PrivUser -->|"*.internal.fferrando.cc"| Traefik["Traefik\n(entrypoints: web:80→websecure, websecure:443, ssh:2222)"]
 
@@ -239,16 +253,19 @@ flowchart TB
     CM["cert-manager\nClusterIssuer: letsencrypt-cloudflare\n(ACME DNS-01 via Cloudflare API)"] -.->|issues Certificate CRs| Route1
 ```
 
-- **Traefik** runs as a DaemonSet with dedicated entrypoints: `web` (80, redirects to HTTPS), `websecure` (443, HTTP/3 enabled), `ssh` (2222, TCP passthrough for Forgejo git-over-SSH), `cf-public` (9443, dedicated entrypoint for traffic arriving through the Cloudflare Tunnel), and a `metrics` entrypoint scraped by Prometheus. The dashboard is exposed at `traefik.internal.fferrando.cc`.
-- **Cloudflare Tunnel** (`cloudflared`) gives public services an outbound-only path to the internet — no ports are forwarded on the home router. Each public app has an `IngressRoute` bound to the `cf-public` entrypoint.
-- **cert-manager** issues all TLS certificates via a single `ClusterIssuer` (`letsencrypt-cloudflare`) using ACME DNS-01 challenges against the Cloudflare API, so certificates can be issued for internal-only hostnames too (no need for HTTP-01/port 80 reachability).
-- Every app that needs both internal and public access declares **two** `IngressRoute`s in the same manifest — one on `websecure` for `*.internal.fferrando.cc` (LAN/Tailscale), one on `cf-public` for the public `fferrando.cc` domain — letting a single app be selectively exposed.
+- **Traefik** runs as a DaemonSet with dedicated entrypoints: `web` (80, redirects to HTTPS), `websecure` (443, HTTP/3 enabled), `ssh` (2222, TCP passthrough for Forgejo git-over-SSH), `cf-public` (9443, plain HTTP from the Cloudflare Tunnel, since TLS terminates at Cloudflare) and `metrics` (scraped by Prometheus). Cross-namespace references are disabled, so each namespace defines its own middlewares. The dashboard is at `traefik.internal.fferrando.cc` behind basic auth.
+- **Cloudflare Tunnel** (`cloudflared`) gives public services an outbound-only path: no ports are forwarded on the home router. Each public app has an `IngressRoute` on `cf-public` with a per-visitor rate limit keyed on `Cf-Connecting-Ip`.
+- **playit.gg** carries Minecraft TCP traffic for kubecraft, which the Cloudflare Tunnel cannot.
+- **cert-manager** issues all TLS certificates via one `ClusterIssuer` (`letsencrypt-cloudflare`) using DNS-01 against the Cloudflare API, so internal-only hostnames get real certificates too.
+- Apps that need both internal and public access declare **two** `IngressRoute`s: one on `websecure` for `*.internal.fferrando.cc` (LAN/Tailscale), one on `cf-public` for the public `fferrando.cc` hostname.
+- **NetworkPolicies** in every namespace: ingress only from the namespace itself and Traefik; egress only to DNS, the namespace itself, the CNPG cluster on 5432 (for DB-backed apps) and, where needed, public internet IPs (private ranges excluded).
+- Grafana "Shared dashboards" are published read-only at `status.fferrando.cc` (only the public-dashboard paths are routed) and embedded on the portfolio homepage.
 
 ---
 
 ## Database layer
 
-A single shared, highly-available CloudNativePG cluster backs every relational-database-consuming app:
+A single shared, highly-available CloudNativePG cluster backs every app that needs Postgres:
 
 ```mermaid
 flowchart TB
@@ -272,17 +289,20 @@ flowchart TB
         Role3["DatabaseRole: vaultwarden"] --> DB3["Database: vaultwarden"]
         Role4["DatabaseRole: jellyfin"] --> DB4["Database: jellyfin"]
         Role5["DatabaseRole: librephoto"] --> DB5["Database: librephoto"]
+        Role6["DatabaseRole: kubecraft"] --> DB6["Database: kubecraft"]
+        Role7["DatabaseRole: lastgasp"] --> DB7["Database: lastgasp"]
     end
 
-    DB1 & DB2 & DB3 & DB4 & DB5 -.->|hosted on| CNPGCluster
+    DB1 & DB2 & DB3 & DB4 & DB5 & DB6 & DB7 -.->|hosted on| CNPGCluster
     App1[forgejo pod] --> RWSvc
 ```
 
-- `homelab-db` runs **3 instances** spread across nodes with a *required* pod anti-affinity rule (`topologyKey: kubernetes.io/hostname`), so a single node failure never takes down the primary and two replicas at once.
-- Each app owns its own login role and logical database via CNPG's declarative `DatabaseRole`/`Database` CRDs (sync-waves 3–4, after the cluster itself at wave 2) — apps never share credentials or a database, only the cluster.
-- Credentials are auto-generated by the operator into per-role `Secret`s (e.g. `forgejo-db-credentials`) and wired into each app's `Deployment` via `secretKeyRef` — no plaintext DB passwords in Git.
-- Consumers: **Forgejo**, **Hedgedoc**, **Vaultwarden**, **Jellyfin** (via a Postgres-patched image), and **LibrePhotos**.
-- Restoring a dump into the cluster is done by temporarily port-forwarding the `-rw` service and piping a `.sql` file through `psql` — no direct pod exec required (see [`notes/db_backup_and_restore.md`](notes/db_backup_and_restore.md)).
+- `homelab-db` runs **3 instances** with a *required* pod anti-affinity rule, so no two instances ever share a node. Rolling updates use `primaryUpdateMethod: switchover`: a replica is promoted before the old primary restarts.
+- Each app owns its own login role and database via CNPG's declarative `DatabaseRole`/`Database` CRDs (waves 3 and 4, after the cluster at wave 2). Apps share only the cluster, never credentials or a database.
+- Credentials are **sealed secrets in Git**: the same `<app>-db-credentials` secret is sealed once for the `database` namespace (used by the CNPG role) and once for the app namespace (read by the pod via `secretKeyRef`).
+- The database `NetworkPolicy` accepts 5432 only from the specific client pods, matched by namespace and pod label.
+- Consumers: **Forgejo**, **Hedgedoc**, **Vaultwarden**, **Jellyfin** (Postgres-backed image), **LibrePhotos**, **kubecraft** and **lastgasp**.
+- Dump and restore commands: [`notes/kubectl.md`](notes/kubectl.md#database-cnpg).
 
 ---
 
@@ -290,16 +310,17 @@ flowchart TB
 
 | App | Description | Image | Access | Storage |
 |---|---|---|---|---|
-| **Forgejo** | Self-hosted Git forge (this repo's own home) | `codeberg.org/forgejo/forgejo:16` | `git.internal.fferrando.cc` · `git.fferrando.cc` · SSH `:2222` | NFS (`/mnt/vault/git`, 2Ti) + CNPG |
-| **Jellyfin** | Media server | `ghcr.io/jpvenson/jellyfin.pgsql:10.11.11-1` (Postgres-backed fork) | `jellyfin.internal.fferrando.cc` · `jellyfin.fferrando.cc` | Longhorn config (7Gi) + NFS media (2Ti) + CNPG |
-| **Vaultwarden** | Bitwarden-compatible password manager | `vaultwarden/server:1.37.2-alpine` | `vault.internal.fferrando.cc` (internal only) | Longhorn (3Gi) + CNPG |
-| **LibrePhotos** | Self-hosted Google-Photos alternative (frontend/backend/proxy/Redis) | `reallibrephotos/librephotos*:1.1.0` | `photo.internal.fferrando.cc` · `photo.fferrando.cc` | Longhorn protected-media (10Gi) + NFS library (2Ti) + CNPG + Redis |
-| **Hedgedoc** | Collaborative Markdown editor | `quay.io/hedgedoc/hedgedoc:1.12.0` | `doc.fferrando.cc` (public only) | Longhorn uploads (5Gi) + CNPG |
-| **Filebrowser Quantum** | Web file manager over shared storage | `gtstef/filebrowser:2.0.4-beta` | `files.internal.fferrando.cc` · `files.fferrando.cc` | Longhorn config (5Gi) + NFS data & media (2Ti each) |
-| **Vibravid** | Media/download manager | `ghcr.io/astraelabs/vibravid:v1.4.0` | `download.internal.fferrando.cc` (internal only) | Longhorn config (1Gi) + NFS media (2Ti) |
-| **Portfolio** | Personal site, built & published by CI to Forgejo's own registry | `git.fferrando.cc/rdfilippo/portfolio:<date>-<build>` | `fferrando.cc` (public only) | stateless |
+| **Forgejo** | Git forge, container registry and OCI Helm registry | `codeberg.org/forgejo/forgejo` | `git.internal.fferrando.cc` · `git.fferrando.cc` · SSH `:2222` | NFS (`/mnt/vault/git`) + CNPG |
+| **Jellyfin** | Media server | `ghcr.io/jpvenson/jellyfin.pgsql` (Postgres-backed) | `jellyfin.internal.fferrando.cc` · `jellyfin.fferrando.cc` | Longhorn config (7Gi) + NFS media (read-only) + CNPG |
+| **Vaultwarden** | Bitwarden-compatible password manager | `vaultwarden/server` (alpine) | `vault.internal.fferrando.cc` (internal only) | Longhorn (3Gi) + CNPG |
+| **LibrePhotos** | Photo library (backend/frontend/proxy/Redis) | `reallibrephotos/librephotos*` | `photo.internal.fferrando.cc` · `photo.fferrando.cc` | Longhorn protected media (10Gi) + NFS library + CNPG |
+| **Hedgedoc** | Collaborative Markdown editor | `quay.io/hedgedoc/hedgedoc` | `doc.fferrando.cc` (public only) | uploads PVC (5Gi) + CNPG |
+| **Filebrowser Quantum** | Web file manager over the NAS shares | `gtstef/filebrowser` | `files.internal.fferrando.cc` · `files.fferrando.cc` | Longhorn config (5Gi) + NFS data & media |
+| **Vibravid** | Video downloader into the media share | `ghcr.io/astraelabs/vibravid` | `download.internal.fferrando.cc` (internal only) | Longhorn config (1Gi) + NFS media (`TV/`) |
+| **kubecraft** | On-demand Minecraft servers with a management UI (own Helm chart) | `git.fferrando.cc/rdfilippo` (OCI chart) | `mine.fferrando.cc` · game traffic via playit.gg and mc-router | Longhorn single-replica worlds + CNPG |
+| **Portfolio** | Personal site, built by CI into Forgejo's registry | `git.fferrando.cc/rdfilippo/portfolio:<YYYYMMDD-HHMM>` | `fferrando.cc` (public only) | stateless |
 
-All application images and Helm chart versions are tracked and auto-updated by Renovate; the portfolio image uses a custom `YYYYMMDD-HHMM` versioning scheme matched by a dedicated Renovate rule so CI-built tags are picked up correctly.
+Image tags are pinned in each manifest and bumped by Renovate.
 
 ---
 
@@ -315,68 +336,54 @@ flowchart LR
     NFSMount["casper NFS export /mnt/vault\n(read-only, mounted at\n/mnt/casper-data on magi)"] --> Script
 ```
 
-- Host-level backups (personal data, and an optional Postgres `pg_dumpall` job) run via **Borg**, scheduled by the `03_deploy_borg_backups.yml` Ansible playbook directly on the `magi` host — deliberately outside the cluster, so backups keep working even if the cluster itself is unhealthy.
-- Each run pushes structured metrics (`backup_status`, per-stage exit codes, duration, last-success timestamp) to the in-cluster **Pushgateway**, making backup health visible in Grafana/Alertmanager alongside every other cluster metric.
-- The source data is exposed as a **read-only** NFS export (`/mnt/vault`, restricted to `magi`'s IP) so the backup host never has write access to the live share.
+- Host-level Borg backups run from cron on `magi` (every 2 days at 02:00), deployed by `03_deploy_borg_backups.yml`. They run deliberately outside the cluster, so backups keep working even if the cluster is unhealthy.
+- Each run pushes metrics (overall status, per-stage exit codes, duration, last-success timestamp) to the in-cluster **Pushgateway**, so backup health shows up in Grafana next to every other cluster metric.
+- The source data is a **read-only** NFS export (`/mnt/vault`, mounted at `/mnt/casper-data` on `magi`), so the backup host never has write access to the live share.
 
 ---
 
 ## Monitoring & observability
 
-- **kube-prometheus-stack** provides Prometheus, Grafana, and Alertmanager, all persisted on `longhorn-single-replica` volumes with bounded retention (5 days / 3GiB for Prometheus) suited to homelab-scale resources.
-- Every infra component that can emit metrics is wired up: Traefik (`ServiceMonitor` on the `metrics` entrypoint), Longhorn (`ServiceMonitor` + a `NetworkPolicy` allowing only Prometheus to scrape it), CloudNativePG (`enablePodMonitor`), cert-manager, Kured, and the Pushgateway.
-- **Pushgateway** bridges metrics from things that aren't long-running scrape targets — currently the host-level Borg backup jobs.
-- Grafana is reachable at `stats.internal.fferrando.cc` (default credentials are rotated after first login).
+- **kube-prometheus-stack** provides Prometheus, Grafana and Alertmanager, all persisted on `longhorn-single-replica` volumes. Prometheus retention is bounded (3 days / 3GiB), and heavy apiserver/etcd histogram metrics are dropped.
+- Prometheus selects every `ServiceMonitor`/`PodMonitor` in every namespace. Wired up: Traefik, Longhorn, CloudNativePG, cert-manager, Kured, Pushgateway, Falco, lastgasp and kubecraft.
+- **Grafana dashboards** live in Git as ConfigMaps loaded by the Grafana sidecar (homelab overview, kubecraft, and anonymized public copies). UI edits are not persisted.
+- **lastgasp** keeps every node's kernel log in Postgres, so the messages before a crash or hang survive the reboot.
+- **Falco** watches syscalls on every node. Custom rules whitelist known-good behaviour (CNPG WAL archiving, controllers talking to the k8s API, Forgejo sshd).
+- Grafana is at `stats.internal.fferrando.cc`. The default admin password must be changed at first login.
 
 ---
 
 ## Secrets management
 
-Secrets are never committed in plaintext. **Sealed Secrets** (Bitnami) encrypts a `Secret` manifest against the cluster's public key so the resulting `SealedSecret` is safe to store in Git — only the controller running in-cluster can decrypt it. This is what makes the **two-phase boot** necessary: on a brand-new cluster, `cloudflared` (tunnel token), `cert-manager` (Cloudflare API token for DNS-01), and the Longhorn UI (BasicAuth) all wait for their sealed secrets to be generated and pushed before they can become healthy. The exact commands for fetching the cluster's public cert and sealing each secret are documented in [`notes/kubeseal_secrets.md`](notes/kubeseal_secrets.md).
+Secrets are never committed in plaintext. **Sealed Secrets** (Bitnami) encrypts a `Secret` manifest against the cluster's public key, so the resulting `SealedSecret` is safe to store in Git: only the controller in the cluster can decrypt it, and only for the exact name and namespace it was sealed for. This is what makes the **two-phase boot** necessary: on a brand-new cluster, `cloudflared` (tunnel token), `cert-manager` (Cloudflare API token for DNS-01) and the Longhorn/Traefik UIs (basic auth) wait for their sealed secrets to be generated and pushed. Back up the controller key: with it, a rebuilt cluster decrypts everything in Git as-is.
+
+Sealing recipes and the full secret inventory: [`notes/kubectl.md`](notes/kubectl.md#sealed-secrets).
 
 ---
 
 ## Automated maintenance
 
-- **Kured** watches for a reboot-sentinel file and coordinates safe, one-at-a-time node reboots during a nightly maintenance window (01:00–05:00 Europe/Rome), with a custom `drainPodSelector` that works around a known Longhorn PDB-deadlock issue ([longhorn/longhorn#5910](https://github.com/longhorn/longhorn/issues/5910)) where instance-manager/CSI-sidecar PodDisruptionBudgets can otherwise block drains indefinitely.
-- **`patch_cluster.yml`** (Ansible) runs a full `dnf update` across every node and flags Kured's reboot sentinel when the kernel/libs actually changed — patching and reboot orchestration are decoupled: Ansible patches, Kured decides when it's safe to reboot.
-- **`prune_cached_images.yml`** (Ansible) runs `crictl rmi --prune` across the cluster to reclaim disk from unused container images.
-- **descheduler** runs as a CronJob every 12 hours to rebalance the cluster (remove duplicate pods, fix anti-affinity violations, and even out CPU/memory/pod-count utilization across nodes) — useful on a small, heterogeneous cluster where pods can otherwise pile up on one node.
-- Every node is joined to a **Tailscale** tailnet with SSH enabled during OS prep, giving remote management access independent of the LAN or any in-cluster service.
+- **Kured** watches for the reboot-sentinel file and reboots nodes one at a time during a nightly window (01:00 to 05:00 Europe/Rome). A custom `drainPodSelector` works around a known Longhorn PDB deadlock ([longhorn/longhorn#5910](https://github.com/longhorn/longhorn/issues/5910)), where instance-manager/CSI-sidecar PodDisruptionBudgets can otherwise block drains forever.
+- **`patch_cluster.yml`** (Ansible) runs `dnf update` on every node and creates Kured's reboot sentinel when `needs-restarting -r` says a reboot is needed. Patching and rebooting are decoupled: Ansible patches, Kured decides when it's safe to reboot.
+- **`prune_cached_images.yml`** (Ansible) runs `crictl rmi --prune` across the cluster to reclaim disk from unused images.
+- **descheduler** runs as a CronJob every 2 hours to rebalance the cluster (duplicate pods, anti-affinity violations, uneven utilization), mainly after Kured reboots leave pods piled on the nodes that stayed up.
+- **Renovate** opens PRs for new image and Helm chart versions.
+- Every node is joined to a **Tailscale** tailnet with SSH enabled during OS prep, giving management access independent of the LAN or any in-cluster service.
 
 ---
 
 ## Bootstrapping a new cluster
 
-High-level order of operations (full detail in [`todo.md`](todo.md)):
-
-1. **Prep hosts** — `ansible-playbook -i ansible/inventory.ini ansible/01_os_prep.yml` (packages, SELinux, sysctls, Tailscale, firewalld, iSCSI for Longhorn).
-2. **Bootstrap k3s + Argo CD** — `ansible/02_bootstrap_cluster.yml` initializes the first server, joins the remaining servers and the agent, then installs upstream Argo CD manifests.
-3. **Mount NFS shares** — `ansible/04_deploy_nfs_shares.yml` configures exports on `casper` and opens the required firewall ports.
-4. **Deploy host backup jobs** — `ansible/03_deploy_borg_backups.yml` on `magi`.
-5. **Fetch kubeconfig** to your workstation (see [`notes/fetch_kubeconfig.md`](notes/fetch_kubeconfig.md)).
-6. **Apply the root Argo CD Applications**: `kubectl apply -f system/root-app.yaml` — this kicks off the entire GitOps reconciliation of `infrastructure/` and `apps/`.
-7. **Seal and commit secrets** (Cloudflare API token, tunnel token, Longhorn BasicAuth) once the Sealed Secrets controller is up — see [`notes/kubeseal_secrets.md`](notes/kubeseal_secrets.md). Pushing these to Git lets `cert-manager`, `cloudflared`, and the Longhorn UI leave their expected "two-phase boot" error state.
-8. **Verify** every endpoint in the table below comes up healthy in Argo CD.
-
-### Endpoint matrix
-
-| Service | Internal URL | Notes |
-|---|---|---|
-| Argo CD | `argocd.internal.fferrando.cc` | Admin password from `argocd-initial-admin-secret` |
-| Traefik dashboard | `traefik.internal.fferrando.cc` | Ingress/router status |
-| Longhorn UI | `longhorn.internal.fferrando.cc` | BasicAuth via sealed secret |
-| Grafana | `stats.internal.fferrando.cc` | Default `admin` / rotate after first login |
-| Pushgateway | `pushgateway.internal.fferrando.cc` | Target for host Borg backup metrics |
-| Forgejo | `git.internal.fferrando.cc` / `git.fferrando.cc` | Internal + public via Cloudflare Tunnel |
+Ansible provisions the hosts and k3s, `kubectl apply -f system/root-app.yaml` starts GitOps, then the sealed secrets are pushed so the core apps can converge. The full procedure and the endpoint matrix are in [`notes/guides/bootstrap.md`](notes/guides/bootstrap.md).
 
 ---
 
 ## Notes & runbooks
 
-The [`notes/`](notes/) directory holds focused, task-specific runbooks referenced throughout this document:
+The [`notes/`](notes/) directory holds the runbooks referenced throughout this document:
 
-- [`fetch_kubeconfig.md`](notes/fetch_kubeconfig.md) — pulling a working `kubeconfig` from the primary server
-- [`kubeseal_secrets.md`](notes/kubeseal_secrets.md) — generating every `SealedSecret` used by the cluster
-- [`db_backup_and_restore.md`](notes/db_backup_and_restore.md) — restoring a `.sql` dump into the shared CNPG cluster
-- [`manage_configs.md`](notes/manage_configs.md) — patterns for managing app config (env vars vs. mounted `ConfigMap`s) the GitOps way
+- [`kubectl.md`](notes/kubectl.md): the command wiki (access, logs, secrets and sealing, Argo CD, CNPG dump/restore, storage, certificates, network policies)
+- [`guides/bootstrap.md`](notes/guides/bootstrap.md): full step-by-step build of a new cluster
+- [`guides/app_config.md`](notes/guides/app_config.md): managing app config the GitOps way (env vars vs. mounted `ConfigMap`s)
+- [`guides/jellyfin_home_lan.md`](notes/guides/jellyfin_home_lan.md): exposing Jellyfin to the main home LAN
+- [`security/`](notes/security/): security audits
