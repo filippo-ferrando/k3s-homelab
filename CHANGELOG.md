@@ -6,6 +6,19 @@ Newest first.
 
 ---
 
+## 2026-10-11: Argo CD manages itself
+
+**What**
+- Added the `argocd` Application (`infrastructure/argocd/application.yaml`, wave -5) for the `argo-cd` Helm chart `10.9.0` (Argo CD `v3.5.2`, the version already running), with `infrastructure/argocd/values.yaml`.
+- Moved `server.insecure` from the hand-written `argocd-cmd-params-cm` in `argocd-ingress.yaml` into the chart values.
+- `ansible/02_bootstrap_cluster.yml` now renders the same chart, version and values with `helm template` instead of applying the floating `stable` manifest.
+- Prune is disabled and there is no resources finalizer, so Argo CD can't delete itself.
+- One-time migration: the chart's pod selectors differ from the upstream manifests' (and are immutable), so the old Deployments/StatefulSet were deleted with `--cascade=orphan` before the first sync.
+
+**Why**
+- Argo CD was installed once from the floating `stable` manifest and never upgraded or tracked in Git.
+- The Helm chart matches how every other infrastructure component is deployed (Application + `values.yaml`) and lets Renovate track it.
+
 ## 2026-10-10: Security hardening pass
 
 **What**

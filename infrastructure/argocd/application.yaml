@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    # First, so an Argo CD upgrade lands before the rest of the tree syncs
+    argocd.argoproj.io/sync-wave: "-5"
+  # No resources-finalizer on purpose: deleting this Application must never cascade to Argo CD itself
+spec:
+  project: default
+  sources:
+    - chart: argo-cd
+      repoURL: https://argoproj.github.io/argo-helm
+      targetRevision: 10.9.0
+      helm:
+        valueFiles:
+          - $values/infrastructure/argocd/values.yaml
+    - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argocd
+  syncPolicy:
+    automated:
+      # No prune: a broken render must not be able to delete Argo CD or its CRDs.
+      # Resources dropped by an upgrade are removed by hand (Argo CD lists them as orphaned).
+      prune: false
+      selfHeal: true
+    syncOptions:
+      # The ApplicationSet CRD is too large for client-side apply
+      - ServerSideApply=true

@@ -4,7 +4,7 @@ The full procedure, from bare hosts to a cluster that Argo CD reconciles on its 
 
 ## 0. Laptop prerequisites
 
-`ansible`, `kubectl`, `kubeseal`, `htpasswd` (`httpd-tools` / `apache2-utils`), `openssl`. Optional: `argocd`, `kubectl-cnpg`.
+`ansible`, `helm` (the bootstrap renders the Argo CD chart locally), `kubectl`, `kubeseal`, `htpasswd` (`httpd-tools` / `apache2-utils`), `openssl`. Optional: `argocd`, `kubectl-cnpg`.
 
 ## 1. Provision hosts and k3s (Ansible)
 

@@ -110,11 +110,12 @@ Deployment order is controlled through `argocd.argoproj.io/sync-wave` annotation
 
 | Wave | Components |
 |---|---|
+| `-5` | Argo CD itself (`argocd` Application) |
 | `-4` | Sealed Secrets, Longhorn |
 | `-3` | cert-manager, CloudNativePG operator, Traefik, every `Namespace` |
 | `-2` | Kured, generic-device-plugin |
 | `-1` | `root-infrastructure`, kube-prometheus-stack, descheduler, `longhorn-single-replica` StorageClass, core sealed secrets (Cloudflare token, tunnel token, Longhorn auth) |
-| `0` | cloudflared, Argo CD server config, app PVCs/PVs, app sealed DB credentials |
+| `0` | cloudflared, app PVCs/PVs, app sealed DB credentials |
 | `1` | `root-apps`, cert-manager `ClusterIssuer`, Pushgateway, Falco |
 | `2` | `Certificate`s, infra IngressRoutes and middlewares, CNPG `Cluster` (`homelab-db`) |
 | `3`, `4` | Per-app CNPG `DatabaseRole` / `Database` objects |
@@ -145,7 +146,7 @@ k3s-homelab/
 │   ├── falco/
 │   ├── lastgasp/
 │   ├── generic-device-plugin/    # exposes /dev/kmsg to the lastgasp agents
-│   └── argocd/                   # Argo CD's own ingress + config
+│   └── argocd/                   # Argo CD itself (Helm, self-managed) + ingress
 ├── apps/                         # Workloads, one folder per application/namespace
 │   ├── database/                 # Shared CloudNativePG Postgres cluster
 │   ├── forgejo/
@@ -193,7 +194,7 @@ App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.ya
 | **Falco** | Runtime intrusion detection (modern eBPF) + Falcosidekick | `falcosecurity.github.io/charts` | `falco` |
 | **lastgasp** | Collects node kernel logs (`/dev/kmsg`) so a node's last messages before a crash survive | own chart, Forgejo OCI registry | `lastgasp` |
 | **generic-device-plugin** | Hands `/dev/kmsg` to lastgasp agents as a resource, so they don't run privileged | raw manifest | `kube-system` |
-| **Argo CD** | GitOps controller (installed via Ansible, configured from Git after) | upstream install manifest (`stable`) | `argocd` |
+| **Argo CD** | GitOps controller (bootstrapped by Ansible, then manages itself) | `argoproj.github.io/argo-helm` | `argocd` |
 
 Versions are pinned in each `application.yaml` / manifest and kept current by **Renovate** (`renovate.json`): minor and patch bumps are grouped, infra and app PRs are labelled separately, Forgejo image lookups are redirected away from rate-limited Codeberg, and the portfolio's date-based tags have their own versioning rule.
 
@@ -386,4 +387,5 @@ The [`notes/`](notes/) directory holds the runbooks referenced throughout this d
 - [`guides/bootstrap.md`](notes/guides/bootstrap.md): full step-by-step build of a new cluster
 - [`guides/app_config.md`](notes/guides/app_config.md): managing app config the GitOps way (env vars vs. mounted `ConfigMap`s)
 - [`guides/jellyfin_home_lan.md`](notes/guides/jellyfin_home_lan.md): exposing Jellyfin to the main home LAN
+- [`improvements.md`](notes/improvements.md): prioritized security and reliability improvements
 - [`security/`](notes/security/): security audits

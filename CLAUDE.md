@@ -1,0 +1,4 @@
+- no em-dashes
+- use a technical writing style
+- add a README.md file when deploying a new service
+- update all the documentation to reflect the latest changes in the service

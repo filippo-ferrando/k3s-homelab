@@ -1,0 +1,6 @@
+configs:
+  cm:
+    url: https://argocd.internal.fferrando.cc
+  params:
+    # TLS terminates at Traefik, so argocd-server must serve plain HTTP
+    server.insecure: true
