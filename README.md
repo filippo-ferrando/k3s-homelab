@@ -191,7 +191,7 @@ App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.ya
 | **Kured** | Coordinated node reboots after OS patching | `kubereboot.github.io/charts` | `kube-system` |
 | **descheduler** | Rebalances pods (duplicates, anti-affinity, utilization) via CronJob | `kubernetes-sigs.github.io/descheduler` | `kube-system` |
 | **kube-prometheus-stack** | Prometheus, Grafana, Alertmanager, node-exporter | `prometheus-community` | `monitoring` |
-| **Pushgateway** | Accepts metrics pushed from host jobs (Borg backups) | `prometheus-community` | `monitoring` |
+| **Pushgateway** | Accepts metrics pushed from host jobs (Borg backups), persisted on a Longhorn volume | `prometheus-community` | `monitoring` |
 | **Falco** | Runtime intrusion detection (modern eBPF) + Falcosidekick | `falcosecurity.github.io/charts` | `falco` |
 | **lastgasp** | Collects node kernel logs (`/dev/kmsg`) so a node's last messages before a crash survive | own chart, Forgejo OCI registry | `lastgasp` |
 | **generic-device-plugin** | Hands `/dev/kmsg` to lastgasp agents as a resource, so they don't run privileged | raw manifest | `kube-system` |
@@ -339,7 +339,7 @@ flowchart LR
 ```
 
 - Host-level Borg backups run from cron on `magi` (every 2 days at 02:00), deployed by `ansible/provision/07_backups.yml`. They run deliberately outside the cluster, so backups keep working even if the cluster is unhealthy.
-- Each run pushes metrics (overall status, per-stage exit codes, duration, last-success timestamp) to the in-cluster **Pushgateway**, so backup health shows up in Grafana next to every other cluster metric.
+- Each run pushes metrics (overall status, per-stage exit codes, duration, last-success timestamp) to the in-cluster **Pushgateway**, so backup health shows up in Grafana next to every other cluster metric. The Pushgateway persists them on a Longhorn volume, so they survive pod restarts.
 - The source data is a **read-only** NFS export (`/mnt/vault`, mounted at `/mnt/casper-data` on `magi`), so the backup host never has write access to the live share.
 
 ---

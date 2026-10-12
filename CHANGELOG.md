@@ -6,6 +6,14 @@ Newest first.
 
 ---
 
+## 2026-10-12: Pushgateway persistence
+
+**What**
+- The Pushgateway writes its metrics to `/data/pushgateway.data` (every minute) on a 100Mi `longhorn-single-replica` PVC.
+
+**Why**
+- Metrics were kept only in memory. A Kured reboot after patching rescheduled the pod and wiped all Borg backup metrics; Grafana showed no data until the next backup run.
+
 ## 2026-10-12: CI on every push and pull request
 
 **What**

@@ -7,3 +7,14 @@ resources:
     memory: 32Mi
   limits:
     memory: 128Mi
+
+# Pushed metrics live in memory; without a file they are lost on every pod restart
+# (node reboot, kured, rollout) until each backup job pushes again.
+extraArgs:
+  - --persistence.file=/data/pushgateway.data
+  - --persistence.interval=1m
+
+persistentVolume:
+  enabled: true
+  storageClass: longhorn-single-replica
+  size: 100Mi
