@@ -18,6 +18,10 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        # nginx-unprivileged image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -26,9 +30,16 @@ spec:
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
+          volumeMounts:
+            # nginx pid and temp files
+            - name: tmp
+              mountPath: /tmp
           resources:
             limits:
               memory: 512Mi
@@ -36,3 +47,7 @@ spec:
             requests:
               memory: 256Mi
               cpu: "250m"
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

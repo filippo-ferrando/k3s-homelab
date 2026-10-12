@@ -10,5 +10,5 @@ Cloudflare Tunnel connector: the only path from the internet into the cluster. C
 |---|---|---|
 | `namespace.yaml` | -3 | Namespace. |
 | `sealed-tunnel-token.yaml` | -1 | SealedSecret `tunnel-token` (key `token`). |
-| `deployment.yaml` | 0 | `cloudflared tunnel run` as non-root (uid 65532), all capabilities dropped, metrics and readiness on `:2000`. Uses `--no-autoupdate`: the version is pinned by image tag and bumped by Renovate, and self-update triggered Falco's "Drop and execute" rule. |
+| `deployment.yaml` | 0 | `cloudflared tunnel run` as non-root (uid 65532), all capabilities dropped, read-only root filesystem (token-based tunnel, nothing is written to disk), metrics and readiness on `:2000`. Uses `--no-autoupdate`: the version is pinned by image tag and bumped by Renovate, and self-update triggered Falco's "Drop and execute" rule. |
 | `networkpolicy.yaml` | - | No ingress. Egress only to DNS, Traefik on 9443 and public IPs on 7844 (tunnel, QUIC/HTTP2) and 443 (Cloudflare API). |
