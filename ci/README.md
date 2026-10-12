@@ -41,6 +41,7 @@ kubeconform -strict -summary -skip CustomResourceDefinition \
 ## Supply chain
 
 - Actions are pinned to commit SHAs (with the version in a comment); tools run from their official images at exact tags (`docker://ghcr.io/...`). Renovate updates both, plus the `pip install` pins and the Helm version (custom managers in `renovate.json`).
+- The CI Python version is capped (`allowedVersions` in `renovate.json`) at what ansible-core supports: 2.21 runs on 3.12 to 3.14, but its metadata has no upper bound, so pip installs it on 3.15 and it crashes at import. Raise the cap when a new ansible-core adds support.
 - The workflow token is read-only (`contents: read`); only `misconfig` gets `security-events: write` to upload its report. Checkouts don't persist credentials.
 
 ## Required checks

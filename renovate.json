@@ -56,6 +56,66 @@
         "apps",
         "renovate"
       ]
+    },
+    {
+      "description": "k3s in its own PRs, one per Kubernetes minor: minors must be upgraded one at a time",
+      "matchPackageNames": [
+        "k3s-io/k3s"
+      ],
+      "groupName": "k3s",
+      "separateMultipleMinor": true,
+      "labels": [
+        "k3s",
+        "renovate"
+      ]
+    },
+    {
+      "description": "CI Python must stay within what ansible-core supports (2.21: 3.12 to 3.14; its metadata has no upper bound, so pip installs it on newer Pythons and it crashes). Raise the cap when ansible-core adds support.",
+      "matchFileNames": [
+        ".github/workflows/**"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "allowedVersions": "<3.15"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "k3s version installed and upgraded to by the Ansible playbooks",
+      "managerFilePatterns": [
+        "/^ansible/group_vars/all\\.yml$/"
+      ],
+      "matchStrings": [
+        "k3s_version:\\s*(?<currentValue>v\\S+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "k3s-io/k3s",
+      "versioningTemplate": "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\+k3s(?<build>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "pip pins in the CI workflow (pip install name==version)",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "pip install (?<depName>[A-Za-z0-9_.-]+)==(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "description": "Helm CLI version installed by azure/setup-helm in the CI workflow",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "azure/setup-helm@\\S+.*\\n\\s+with:\\n\\s+version: (?<currentValue>v[^\\s]+)"
+      ],
+      "depNameTemplate": "helm/helm",
+      "datasourceTemplate": "github-releases"
     }
   ]
 }
