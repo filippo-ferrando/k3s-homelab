@@ -21,7 +21,7 @@ borg create \
   --compression zstd \
   --exclude '**/appdata_*' \
   --exclude '/mnt/casper-data/git/ssh/ssh_host_*' \
-  '::{hostname}-{now:%Y-%m-%d}' \
+  '::{hostname}-{now:%Y-%m-%dT%H:%M:%S}' \
   /mnt/casper-data
 CREATE_EXIT=$?
 

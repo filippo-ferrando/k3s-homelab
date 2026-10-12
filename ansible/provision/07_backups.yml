@@ -34,12 +34,8 @@
         group: "{{ backup_user }}"
         mode: "0600"
 
-    - name: Create the backup source mount point
-      ansible.builtin.file:
-        path: /mnt/casper-data
-        state: directory
-        mode: "0755"
-
+    # state: mounted also creates the mount point. No separate file task: once mounted, the path
+    # is the read-only NFS root, and setting its mode fails with "Read-only file system".
     - name: Mount the read-only /mnt/vault export
       ansible.posix.mount:
         path: /mnt/casper-data
