@@ -65,7 +65,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 1,
@@ -350,7 +353,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 10,
@@ -1059,7 +1065,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 20,
@@ -1550,7 +1559,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 60,
@@ -1876,7 +1888,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 70,
@@ -1919,17 +1934,33 @@ data:
                 "steps": [
                   {
                     "value": null,
-                    "color": "green"
+                    "color": "red"
                   },
                   {
-                    "value": 80,
-                    "color": "red"
+                    "value": 1,
+                    "color": "green"
                   }
                 ]
               },
               "color": {
-                "mode": "palette-classic"
-              }
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "FAILED",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "OK",
+                      "color": "green"
+                    }
+                  }
+                }
+              ],
+              "noValue": "no data"
             },
             "overrides": []
           },
@@ -1993,21 +2024,27 @@ data:
                     "color": "green"
                   },
                   {
-                    "value": 80,
+                    "value": 50,
+                    "color": "orange"
+                  },
+                  {
+                    "value": 72,
                     "color": "red"
                   }
                 ]
               },
               "color": {
-                "mode": "palette-classic"
-              }
+                "mode": "thresholds"
+              },
+              "noValue": "never",
+              "decimals": 1
             },
             "overrides": []
           },
           "targets": [
             {
               "editorMode": "code",
-              "expr": "(time() - max by (job) (backup_last_success_timestamp_seconds)) / 3600",
+              "expr": "(time() - max by (job) (backup_last_success_timestamp_seconds > 0)) / 3600",
               "legendFormat": "{{job}}",
               "range": true,
               "refId": "A",
@@ -2141,7 +2178,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 30,
@@ -2589,7 +2629,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 40,
@@ -2927,7 +2970,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 50,
@@ -3317,7 +3363,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 81,
@@ -3714,7 +3763,10 @@ data:
             "w": 24,
             "h": 1
           },
-          "panels": []
+          "panels": [],
+          "fieldConfig": {
+            "defaults": {}
+          }
         },
         {
           "id": 1001,
