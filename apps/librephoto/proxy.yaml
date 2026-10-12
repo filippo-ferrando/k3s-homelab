@@ -28,6 +28,10 @@ spec:
                       - librephoto-backend
               topologyKey: kubernetes.io/hostname
       securityContext:
+        # nginx user of the image (workers already ran as it); ports start at 0 on the nodes, so 80 binds without NET_BIND_SERVICE; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -42,10 +46,18 @@ spec:
               memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - containerPort: 80
               name: http
           volumeMounts:
+            # nginx pid and temp files
+            - name: run
+              mountPath: /run
+            - name: cache
+              mountPath: /var/cache/nginx
             - name: protected-media
               mountPath: /protected_media
             - name: nfs-data
@@ -55,6 +67,13 @@ spec:
               mountPath: /data/famiglia
               subPath: Famiglia/Foto
       volumes:
+        - name: run
+          emptyDir:
+            sizeLimit: 8Mi
+        - name: cache
+          # Client bodies and proxied responses that overflow the in-memory buffers
+          emptyDir:
+            sizeLimit: 1Gi
         - name: protected-media
           persistentVolumeClaim:
             claimName: librephoto-protected-media

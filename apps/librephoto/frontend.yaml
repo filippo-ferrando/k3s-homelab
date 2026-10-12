@@ -28,6 +28,10 @@ spec:
                       - librephoto-backend
               topologyKey: kubernetes.io/hostname
       securityContext:
+        # static user of the image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -42,6 +46,9 @@ spec:
               memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           env:
             - name: BACKEND_HOST
               value: "librephoto-backend"

@@ -18,6 +18,10 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        # redis user of the image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -32,8 +36,19 @@ spec:
               memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - containerPort: 6379
+          volumeMounts:
+            # Working dir for RDB snapshots: ephemeral, as before (queue and cache only)
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service

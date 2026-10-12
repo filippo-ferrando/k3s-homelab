@@ -18,9 +18,9 @@
 | `nfs_volume.yaml` | 0 | Static NFS PV + PVC `librephoto-nfs-data` pointing at `192.168.10.101:/mnt/vault/data`. `Filippo/Foto` and `Famiglia/Foto` are mounted as subPaths under `/data`. |
 | `certificate.yaml` | 2 | cert-manager Certificate for `photo.internal.fferrando.cc`. |
 | `db.yaml` | 3, 4 | CNPG `DatabaseRole` + `Database` `librephoto`. |
-| `backend.yaml` | 5 | Backend Deployment + Service (8001). DB, redis, CSRF origins, 1 worker, logs in `/tmp/logs`. |
-| `frontend.yaml` | 5 | Frontend Deployment + Service (3000), pinned to the backend's node with pod affinity. |
-| `proxy.yaml` | 5 | nginx proxy Deployment + Service (80), pinned to the backend's node, serving `/protected_media` and the photo folders directly. Also defines the `backend` and `frontend` Service aliases, because the proxy image's nginx config expects upstreams with those exact names. |
-| `redis.yaml` | 5 | Redis Deployment + Service (6379) for the job queue and cache. |
+| `backend.yaml` | 5 | Backend Deployment + Service (8001). DB, redis, CSRF origins, 1 worker, logs in `/tmp/logs`. Read-only root filesystem: `/tmp` (logs, lock file) and `STATIC_ROOT` (`/code/librephotos/static`, refilled by `collectstatic` on every start) are emptyDirs, and `PYTHONDONTWRITEBYTECODE=1` because the image ships no `.pyc` files. Still runs as root: the existing files on the media and NFS volumes are root-owned. |
+| `frontend.yaml` | 5 | Frontend Deployment + Service (3000), pinned to the backend's node with pod affinity. Non-root (uid 1000), read-only root filesystem. |
+| `proxy.yaml` | 5 | nginx proxy Deployment + Service (80), pinned to the backend's node, serving `/protected_media` and the photo folders directly. Also defines the `backend` and `frontend` Service aliases, because the proxy image's nginx config expects upstreams with those exact names. Non-root (uid 101, binds 80 because the nodes allow unprivileged ports from 0), read-only root filesystem; pid and temp files go to emptyDirs on `/run` and `/var/cache/nginx`. |
+| `redis.yaml` | 5 | Redis Deployment + Service (6379) for the job queue and cache. Non-root (uid 999), read-only root filesystem; RDB snapshots go to an emptyDir on `/data` (ephemeral). |
 | `ingressroute.yaml` | 6 | Internal and public routes to `librephoto-proxy`, plus `public-ratelimit`. |
 | `networkpolicy.yaml` | - | Ingress from own namespace + Traefik. Egress to DNS, own namespace, CNPG and the public internet. |

@@ -25,9 +25,13 @@ spec:
           image: reallibrephotos/librephotos:1.3.0
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           env:
             - name: BASE_LOGS
               value: "/tmp/logs"
+            # The image ships no .pyc files and the root filesystem is read-only
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -78,6 +82,12 @@ spec:
             - name: FEATURE_REVERSE_GEOCODING
               value: "false"
           volumeMounts:
+            # Logs, lock file and temp files
+            - name: tmp
+              mountPath: /tmp
+            # STATIC_ROOT: not in the image, collectstatic fills it on every start
+            - name: static
+              mountPath: /code/librephotos/static
             - name: nfs-data
               mountPath: /data/filippo
               subPath: Filippo/Foto
@@ -94,6 +104,12 @@ spec:
               cpu: 1000m
               memory: 4Gi
       volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: static
+          emptyDir:
+            sizeLimit: 128Mi
         - name: nfs-data
           persistentVolumeClaim:
             claimName: librephoto-nfs-data
