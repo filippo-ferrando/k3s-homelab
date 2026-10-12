@@ -1,0 +1,4 @@
+# Trivy findings dismissed for the whole repo. One check ID per line, with the reason.
+
+# Trusted-registry allowlist: images are pulled from several public registries and pinned by tag.
+KSV-0125

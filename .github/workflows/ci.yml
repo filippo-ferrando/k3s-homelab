@@ -119,7 +119,7 @@ jobs:
       - uses: docker://ghcr.io/aquasecurity/trivy:0.75.0
         with:
           args: >-
-            config --quiet --exit-code 0
+            config --quiet --exit-code 0 --ignorefile .trivyignore
             --skip-dirs ansible --skip-dirs ci --skip-dirs notes
             --format sarif --output trivy.sarif .
       - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3

@@ -11,7 +11,7 @@ Checks that run on every push to `main` and every pull request (Renovate's inclu
 | `manifests` | yes | kubeconform, strict, on every manifest under `apps/`, `infrastructure/` and `system/`. Custom resources are validated against the [CRDs catalog](https://github.com/datreeio/CRDs-catalog); a resource without a schema fails instead of being skipped. |
 | `charts` | yes | `render_charts.py` renders every Helm-based Application with its chart, version and values, as Argo CD would, then kubeconform validates the output. Catches Renovate chart bumps that break with the repo's values. |
 | `ansible` | yes | `ansible-playbook --syntax-check` on `site.yml`, `patch_cluster.yml` and `maintenance/prune_images.yml`, with the collections from `ansible/requirements.yml`. No vault password or node access needed. |
-| `misconfig` | no | trivy config scan, uploaded to the GitHub Security tab (code scanning). Report-only, because the known findings (root containers, writable root filesystems) are tracked in `notes/security/`. New findings show up as PR annotations. |
+| `misconfig` | no | trivy config scan, uploaded to the GitHub Security tab (code scanning). Report-only, because the known findings (root containers, writable root filesystems) are tracked in `notes/security/`. New findings show up as PR annotations. Checks dismissed for the whole repo are listed, with the reason, in `.trivyignore` (currently `KSV-0125`, trusted-registry allowlist). |
 
 ## Files
 
