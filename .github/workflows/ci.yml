@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - run: pip install pyyaml==6.0.3
       - run: python3 ci/check_manifests.py
 
@@ -70,7 +70,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: v4.3.0
@@ -95,8 +95,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
-      - run: pip install ansible-core==2.21.4
+          python-version: "3.14"
+      - run: pip install ansible-core==2.21.5
       - run: ansible-galaxy collection install -r ansible/requirements.yml
       # --syntax-check needs no vault password and no connection to the nodes
       - run: |
