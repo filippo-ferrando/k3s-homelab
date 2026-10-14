@@ -116,7 +116,7 @@ jobs:
           persist-credentials: false
       # Never fails the build: known findings (root containers, writable root filesystems) are tracked
       # in notes/security/. New ones show up in the Security tab and as annotations on the PR.
-      - uses: docker://ghcr.io/aquasecurity/trivy:0.75.0
+      - uses: docker://ghcr.io/aquasecurity/trivy:0.76.0
         with:
           args: >-
             config --quiet --exit-code 0 --ignorefile .trivyignore
