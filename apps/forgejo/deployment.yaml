@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: forgejo
-          image: codeberg.org/forgejo/forgejo:16
+          image: codeberg.org/forgejo/forgejo:17
           securityContext:
             allowPrivilegeEscalation: false
           ports:
