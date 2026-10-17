@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backend
-          image: reallibrephotos/librephotos:1.3.0
+          image: reallibrephotos/librephotos:1.4.0
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
