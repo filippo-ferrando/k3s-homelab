@@ -11,6 +11,7 @@
 |---|---|---|
 | `web` | 80 | Redirects to 443. |
 | `websecure` | 443 (HTTP/3 on) | LAN routes, `*.internal.fferrando.cc`, cert-manager TLS. |
+| `home-lan` | 8444 | Main home LAN (`192.168.1.0/24`) via the OPNsense WAN port forward 443 to 8444. Only Jellyfin is bound to it. |
 | `cf-public` | 9443 | Plain HTTP from cloudflared; every public route. |
 | `ssh` | 2222 | TCP passthrough to Forgejo SSH. |
 | `metrics` | 9100 | Prometheus metrics (not exposed). |

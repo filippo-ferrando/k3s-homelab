@@ -6,6 +6,15 @@ Newest first.
 
 ---
 
+## 2026-10-17: Jellyfin on the main home LAN
+
+**What**
+- New Traefik entrypoint `home-lan` (8444), exposed on ServiceLB. Only the `jellyfin-internal` IngressRoute is bound to it.
+- OPNsense forwards WAN `443` (source `192.168.1.0/24`) to `192.168.10.102:8444`; Cloudflare DNS points `jellyfin.internal.fferrando.cc` at the OPNsense WAN IP (DNS only).
+
+**Why**
+- Devices on the main home LAN (TV) streamed through the Cloudflare Tunnel. They now reach Jellyfin directly, without exposing any other `*.internal` service.
+
 ## 2026-10-12: Pushgateway persistence
 
 **What**

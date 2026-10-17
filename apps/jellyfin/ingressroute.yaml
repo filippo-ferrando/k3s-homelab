@@ -8,6 +8,7 @@ metadata:
 spec:
   entryPoints:
     - websecure
+    - home-lan
   routes:
     - match: Host(`jellyfin.internal.fferrando.cc`)
       kind: Rule

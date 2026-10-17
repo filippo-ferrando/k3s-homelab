@@ -3,7 +3,7 @@
 [Jellyfin](https://jellyfin.org) media server, using the `jpvenson/jellyfin.pgsql` image so its library database lives on the shared Postgres instead of SQLite.
 
 - **Namespace:** `jellyfin` (PSS enforce `baseline`, warn `restricted`)
-- **URLs:** `https://jellyfin.internal.fferrando.cc` (LAN), `https://jellyfin.fferrando.cc` (Cloudflare tunnel)
+- **URLs:** `https://jellyfin.internal.fferrando.cc` (homelab LAN, Tailscale and main home LAN), `https://jellyfin.fferrando.cc` (Cloudflare tunnel)
 - **Database:** `jellyfin` on `homelab-db`
 
 ## Files
@@ -19,7 +19,7 @@
 | `db.yaml` | 3, 4 | CNPG `DatabaseRole` + `Database` `jellyfin`. |
 | `deployment.yaml` | 5 | Jellyfin (`Recreate`), Postgres via `POSTGRES_*` env vars, probes on `/health`, `emptyDir` for `/cache`. |
 | `service.yaml` | 5 | ClusterIP on 8096. |
-| `ingressroute.yaml` | 6 | Internal and public routes. The public route uses a looser rate limit (600/min, burst 300) than the other apps, because streaming makes many requests. |
+| `ingressroute.yaml` | 6 | Internal route (`websecure` + `home-lan`) and public route (`cf-public`). The public route uses a looser rate limit (600/min, burst 300) than the other apps, because streaming makes many requests. |
 | `networkpolicy.yaml` | - | Ingress from own namespace + Traefik. Egress to DNS, own namespace, CNPG and the public internet (metadata providers). |
 
-LAN access notes: `notes/guides/jellyfin_home_lan.md`.
+Main home LAN setup (OPNsense port forward, DNS): `notes/guides/jellyfin_home_lan.md`.

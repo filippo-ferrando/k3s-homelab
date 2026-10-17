@@ -255,7 +255,7 @@ flowchart TB
     CM["cert-manager\nClusterIssuer: letsencrypt-cloudflare\n(ACME DNS-01 via Cloudflare API)"] -.->|issues Certificate CRs| Route1
 ```
 
-- **Traefik** runs as a DaemonSet with dedicated entrypoints: `web` (80, redirects to HTTPS), `websecure` (443, HTTP/3 enabled), `ssh` (2222, TCP passthrough for Forgejo git-over-SSH), `cf-public` (9443, plain HTTP from the Cloudflare Tunnel, since TLS terminates at Cloudflare) and `metrics` (scraped by Prometheus). Cross-namespace references are disabled, so each namespace defines its own middlewares. The dashboard is at `traefik.internal.fferrando.cc` behind basic auth.
+- **Traefik** runs as a DaemonSet with dedicated entrypoints: `web` (80, redirects to HTTPS), `websecure` (443, HTTP/3 enabled), `ssh` (2222, TCP passthrough for Forgejo git-over-SSH), `home-lan` (8444, Jellyfin only, reached from the main home LAN through an OPNsense WAN port forward), `cf-public` (9443, plain HTTP from the Cloudflare Tunnel, since TLS terminates at Cloudflare) and `metrics` (scraped by Prometheus). Cross-namespace references are disabled, so each namespace defines its own middlewares. The dashboard is at `traefik.internal.fferrando.cc` behind basic auth.
 - **Cloudflare Tunnel** (`cloudflared`) gives public services an outbound-only path: no ports are forwarded on the home router. Each public app has an `IngressRoute` on `cf-public` with a per-visitor rate limit keyed on `Cf-Connecting-Ip`.
 - **playit.gg** carries Minecraft TCP traffic for kubecraft, which the Cloudflare Tunnel cannot.
 - **cert-manager** issues all TLS certificates via one `ClusterIssuer` (`letsencrypt-cloudflare`) using DNS-01 against the Cloudflare API, so internal-only hostnames get real certificates too.
