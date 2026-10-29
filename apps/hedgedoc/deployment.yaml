@@ -23,6 +23,10 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        # static user of the image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 10000
+        runAsGroup: 10000
         fsGroup: 10000
         seccompProfile:
           type: RuntimeDefault
@@ -32,6 +36,9 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - name: http
               containerPort: 3000
@@ -74,6 +81,9 @@ spec:
             - name: CMD_ALLOW_GRAVATAR
               value: "true"
           volumeMounts:
+            # Read-only root filesystem: temp files for uploads
+            - name: tmp
+              mountPath: /tmp
             - name: uploads
               mountPath: /hedgedoc/public/uploads
           resources:
@@ -96,6 +106,9 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
       volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
         - name: uploads
           persistentVolumeClaim:
             claimName: hedgedoc-uploads

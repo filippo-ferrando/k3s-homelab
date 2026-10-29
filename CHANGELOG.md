@@ -6,6 +6,17 @@ Newest first.
 
 ---
 
+## 2026-10-29: App hardening and vibravid persistence
+
+**What**
+- filebrowser, hedgedoc, jellyfin, vaultwarden and vibravid run non-root with a read-only root filesystem and all capabilities dropped; their namespaces now enforce PSS `restricted`. Writable runtime paths are emptyDirs.
+- filebrowser and vaultwarden listen on 8080; their Services still expose 80.
+- vibravid: the DB, Django secret key, `Conf`, cache and downloaded tools are mounted from subPaths of the `vibravid-config` PVC at the paths the upstream `docker-compose.yml` persists. The root entrypoint is bypassed.
+
+**Why**
+- Trivy findings in the GitHub Security tab (KSV-0014, KSV-0012, KSV-0117 and related).
+- vibravid's `VIBRAVID_CONFIG_DIR`/`DB_DIR`/`LOGS_DIR` env vars are docker-compose host-side variables that the app never reads: its SQLite DB and settings lived in the container layer and were lost on every restart.
+
 ## 2026-10-17: Jellyfin on the main home LAN
 
 **What**

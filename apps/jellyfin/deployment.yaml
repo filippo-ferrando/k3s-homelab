@@ -21,6 +21,12 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        # existing files on the config PVC are root-owned: fsGroup makes them group-writable
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -28,11 +34,17 @@ spec:
           image: ghcr.io/jpvenson/jellyfin.pgsql:10.11.11-1
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - name: http
               containerPort: 8096
 
           env:
+            # /root is 0700 in the image; .NET keeps its data protection keys under $HOME
+            - name: HOME
+              value: /home/jellyfin
             - name: POSTGRES_HOST
               value: homelab-db-rw.database.svc.cluster.local
 
@@ -75,6 +87,15 @@ spec:
             periodSeconds: 20
 
           volumeMounts:
+            # Read-only root filesystem: paths Jellyfin and .NET write at runtime
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/jellyfin
+            - name: fontconfig
+              mountPath: /var/cache/fontconfig
+            - name: dictionaries
+              mountPath: /jellyfin/Dictionaries
             - name: config
               mountPath: /config
             - name: cache
@@ -83,6 +104,18 @@ spec:
               mountPath: /media
               readOnly: true
       volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: home
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: fontconfig
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: dictionaries
+          emptyDir:
+            sizeLimit: 16Mi
         - name: cache
           emptyDir: {}
         - name: config

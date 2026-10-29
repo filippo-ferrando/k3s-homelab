@@ -363,7 +363,7 @@ kubectl run nettest -n forgejo --rm -it --restart=Never --image=busybox:1.37 -- 
   nc -zv homelab-db-rw.database.svc.cluster.local 5432
 ```
 
-In namespaces enforcing PSS `restricted` (`database`, `cloudflared`, `minecraft`), a bare pod is rejected. Run the test from another namespace, or use `kubectl debug` on an existing pod.
+In namespaces enforcing PSS `restricted` (`database`, `cloudflared`, `minecraft`, `portfolio`, `filebrowser`, `hedgedoc`, `jellyfin`, `vaultwarden`, `vibravid`), a bare pod is rejected. Run the test from another namespace, or use `kubectl debug` on an existing pod.
 
 Traefik routing problems:
 

@@ -21,6 +21,10 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        # static user of the image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
@@ -29,10 +33,16 @@ spec:
           image: gtstef/filebrowser:2.1.3-beta
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
           volumeMounts:
+            # Read-only root filesystem: temp files for uploads
+            - name: tmp
+              mountPath: /tmp
             - name: fb-config-folder
               mountPath: /home/filebrowser/data
             - name: fb-config
@@ -56,6 +66,9 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
       volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
         - name: fb-config-folder
           persistentVolumeClaim:
             claimName: fbq-config

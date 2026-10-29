@@ -21,11 +21,20 @@ spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
       securityContext:
+        # appuser of the image; numeric ids so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 999
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: vibravid
           image: ghcr.io/astraelabs/vibravid:v1.4.8
+          # Skips the root entrypoint (PUID remap, gosu, binary pre-fetch); velora/flux download lazily
+          command:
+            - sh
+            - -c
+            - python GUI/manage.py migrate --noinput && exec python GUI/manage.py runserver --noreload 0.0.0.0:8000
           resources:
             requests:
               cpu: 50m
@@ -35,6 +44,9 @@ spec:
               memory: 1Gi
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - containerPort: 8000
               name: http
@@ -45,19 +57,32 @@ spec:
               value: "https://download.internal.fferrando.cc"
             - name: VIBRAVID_OUTPUT_ROOT
               value: "/downloads"
-            - name: VIBRAVID_CONFIG_DIR
-              value: "/config"
-            - name: VIBRAVID_DB_DIR
-              value: "/config/db"
-            - name: VIBRAVID_LOGS_DIR
-              value: "/config/logs"
+            # The root filesystem is read-only: no .pyc files next to the sources
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           volumeMounts:
             - name: media
               mountPath: /downloads
               subPath: TV
+            # Paths the upstream docker-compose.yml persists, as subPaths of one PVC
             - name: config
-              mountPath: /config
+              mountPath: /app/data
+              subPath: data
+            - name: config
+              mountPath: /app/Conf
+              subPath: Conf
+            - name: config
+              mountPath: /app/.cache
+              subPath: cache
+            - name: config
+              mountPath: /home/appuser/.local/bin/binary
+              subPath: binary
+            - name: tmp
+              mountPath: /tmp
       volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
         - name: media
           persistentVolumeClaim:
             claimName: vibravid-data

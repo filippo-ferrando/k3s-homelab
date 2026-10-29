@@ -7,6 +7,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 data:
   config.yaml: |
+    # unprivileged port, the Service maps 80 to it
+    http:
+      port: 8080
     server:
       cacheDir: /home/filebrowser/data/tmp
       sources:
