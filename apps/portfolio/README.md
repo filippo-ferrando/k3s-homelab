@@ -10,7 +10,7 @@ Personal website served at the apex domain. The image (`nginxinc/nginx-unprivile
 | File | Wave | Description |
 |---|---|---|
 | `namespace.yaml` | -3 | Namespace. |
-| `deployment.yaml` | 5 | Single replica of `git.fferrando.cc/rdfilippo/portfolio:<date-tag>`, `imagePullPolicy: Always`. Non-root (uid 101), all capabilities dropped, read-only root filesystem; nginx writes its pid and temp files to an emptyDir on `/tmp`. Listens on 8080. |
+| `deployment.yaml` | 5 | Single replica of `git.fferrando.cc/rdfilippo/portfolio:<date-tag>`, `imagePullPolicy: Always`. Non-root (uid 101), all capabilities dropped, read-only root filesystem; nginx writes its pid and temp files to an emptyDir on `/tmp`. Listens on 8080. Readiness (every 10s) and liveness (every 30s, 3 failures) probes on `/`: the image has no dedicated health route, nginx falls back to `/index.html` for unknown paths. |
 | `service.yaml` | 5 | ClusterIP on 80, targets the container's `http` port (8080). |
 | `ingressroute.yaml` | 6 | Public route for `fferrando.cc` + `public-ratelimit` (60/min per `Cf-Connecting-Ip`). |
 | `networkpolicy.yaml` | - | Ingress from own namespace + Traefik. Egress to DNS and own namespace only. |

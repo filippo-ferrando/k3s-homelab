@@ -148,6 +148,7 @@ k3s-homelab/
 │   ├── generic-device-plugin/    # exposes /dev/kmsg to the lastgasp agents
 │   └── argocd/                   # Argo CD itself (Helm, self-managed) + ingress
 ├── apps/                         # Workloads, one folder per application/namespace
+│   ├── anvil/                    # anvil project website
 │   ├── database/                 # Shared CloudNativePG Postgres cluster
 │   ├── forgejo/
 │   ├── jellyfin/
@@ -197,7 +198,7 @@ App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.ya
 | **generic-device-plugin** | Hands `/dev/kmsg` to lastgasp agents as a resource, so they don't run privileged | raw manifest | `kube-system` |
 | **Argo CD** | GitOps controller (bootstrapped by Ansible, then manages itself) | `argoproj.github.io/argo-helm` | `argocd` |
 
-Versions are pinned in each `application.yaml` / manifest and kept current by **Renovate** (`renovate.json`): minor and patch bumps are grouped, infra and app PRs are labelled separately, Forgejo image lookups are redirected away from rate-limited Codeberg, and the portfolio's date-based tags have their own versioning rule.
+Versions are pinned in each `application.yaml` / manifest and kept current by **Renovate** (`renovate.json`): minor and patch bumps are grouped, infra and app PRs are labelled separately, Forgejo image lookups are redirected away from rate-limited Codeberg, and the date-based tags of the portfolio and anvil website images have their own versioning rule.
 
 ---
 
@@ -321,6 +322,7 @@ flowchart TB
 | **Vibravid** | Video downloader into the media share | `ghcr.io/astraelabs/vibravid` | `download.internal.fferrando.cc` (internal only) | Longhorn config (1Gi) + NFS media (`TV/`) |
 | **kubecraft** | On-demand Minecraft servers with a management UI (own Helm chart) | `git.fferrando.cc/rdfilippo` (OCI chart) | `mine.fferrando.cc` · game traffic via playit.gg and mc-router | Longhorn single-replica worlds + CNPG |
 | **Portfolio** | Personal site, built by CI into Forgejo's registry | `git.fferrando.cc/rdfilippo/portfolio:<YYYYMMDD-HHMM>` | `fferrando.cc` (public only) | stateless |
+| **anvil website** | anvil project site (prerendered SvelteKit), built by CI into Forgejo's registry | `git.fferrando.cc/anvil/website:<YYYYMMDD-HHMM>` | `anvil.fferrando.cc` (public only) | stateless |
 
 Image tags are pinned in each manifest and bumped by Renovate.
 

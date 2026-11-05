@@ -25,7 +25,8 @@
     },
     {
       "matchPackageNames": [
-        "git.fferrando.cc/rdfilippo/portfolio"
+        "git.fferrando.cc/rdfilippo/portfolio",
+        "git.fferrando.cc/anvil/website"
       ],
       "versioning": "regex:^(?<major>\\d{8})-(?<minor>\\d{4})$"
     },

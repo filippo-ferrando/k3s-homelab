@@ -1,6 +1,6 @@
 # forgejo
 
-[Forgejo](https://forgejo.org) Git forge. Besides hosting repositories, it serves as the container registry for the `portfolio` image and as the OCI Helm registry for the `kubecraft` and `lastgasp` charts.
+[Forgejo](https://forgejo.org) Git forge. Besides hosting repositories, it serves as the container registry for the `portfolio` and `anvil/website` images and as the OCI Helm registry for the `kubecraft` and `lastgasp` charts.
 
 - **Namespace:** `forgejo` (PSS enforce `baseline`, warn `restricted`)
 - **URLs:** `https://git.internal.fferrando.cc` (LAN), `https://git.fferrando.cc` (Cloudflare tunnel, rate-limited), SSH on Traefik port `2222`

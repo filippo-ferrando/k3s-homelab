@@ -6,6 +6,16 @@ Newest first.
 
 ---
 
+## 2026-11-05: anvil website
+
+**What**
+- New app `apps/anvil`: the anvil project website, served at `anvil.fferrando.cc` through the Cloudflare tunnel (namespace `anvil-website`, PSS `restricted`).
+- Same layout as `apps/portfolio`: unprivileged nginx (uid 101), read-only root filesystem, per-visitor rate limit on the public IngressRoute, ingress only from Traefik.
+- The image `git.fferrando.cc/anvil/website:<YYYYMMDD-HHMM>` is built by CI in the `anvil/website` repository and pushed to the Forgejo registry; Renovate bumps it with the same date-tag versioning rule as the portfolio.
+
+**Why**
+- anvil needed a public landing page. A prerendered static site needs no database, no egress and no persistent storage.
+
 ## 2026-10-29: App hardening and vibravid persistence
 
 **What**

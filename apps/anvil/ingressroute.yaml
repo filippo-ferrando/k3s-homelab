@@ -1,0 +1,34 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: anvil-website
+  namespace: anvil-website
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  entryPoints:
+    - cf-public
+  routes:
+    - match: Host(`anvil.fferrando.cc`)
+      kind: Rule
+      middlewares:
+        - name: public-ratelimit
+      services:
+        - name: anvil-website
+          port: 80
+---
+# Bucketed per visitor via Cf-Connecting-Ip (RemoteAddr would be the cloudflared pod).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-ratelimit
+  namespace: anvil-website
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  rateLimit:
+    average: 60
+    period: 1m
+    burst: 30
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip
