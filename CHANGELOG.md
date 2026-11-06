@@ -6,6 +6,18 @@ Newest first.
 
 ---
 
+## 2026-11-06: RomM
+
+**What**
+- New app `apps/romm`: RomM 5.4.1 (ROM manager), internal only at `rom.internal.fferrando.cc` (namespace `romm`, PSS `restricted`).
+- Database on the shared CNPG cluster (`ROMM_DB_DRIVER=postgresql`, role and database `romm`) instead of the MariaDB container of the upstream compose; the database NetworkPolicy admits the `romm` pod on 5432.
+- ROMs and BIOS files come from the NFS `data` share: only `Filippo/Games/Roms` and `Filippo/Games/Bios` are mounted, as `/romm/library/roms` and `/romm/library/bios`.
+- Runs as the image's `romm` user (uid 1000) with a read-only root filesystem. The stock entrypoint works unchanged once `/tmp` and `/etc/nginx/conf.d` are emptyDirs. Resources, assets, config and the internal Valkey data live on one `longhorn` PVC (10Gi).
+- Egress to the internet for the keyless metadata providers (Hasheous, LaunchBox, PlayMatch).
+
+**Why**
+- Browse and play the ROM collection already stored on the NAS. CNPG avoids running a second database engine in the cluster.
+
 ## 2026-11-05: anvil website
 
 **What**

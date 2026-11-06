@@ -62,6 +62,7 @@ Then every app's DB credentials and app-specific secrets. Commit and push. Argo 
 | FileBrowser | `files.internal.fferrando.cc` / `files.fferrando.cc` | |
 | Vaultwarden | `vault.internal.fferrando.cc` | LAN only |
 | vibravid | `download.internal.fferrando.cc` | LAN only |
+| RomM | `rom.internal.fferrando.cc` | LAN only, setup wizard creates the admin |
 | HedgeDoc | `doc.fferrando.cc` | public only |
 | kubecraft | `mine.fferrando.cc` | public only |
 | Portfolio | `fferrando.cc` | public only |

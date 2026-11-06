@@ -157,6 +157,7 @@ k3s-homelab/
 │   ├── hedgedoc/
 │   ├── filebrowser_quantum/
 │   ├── vibravid/
+│   ├── romm/
 │   ├── kubecraft/
 │   └── portfolio/
 ├── ansible/                      # Bare-metal provisioning & day-2 host operations
@@ -215,8 +216,8 @@ flowchart LR
 
     subgraph Uses["Consumers"]
         DB["CloudNativePG (homelab-db)\nPrometheus / Alertmanager / Grafana\nkubecraft worlds"]
-        Small["App config volumes\n(Vaultwarden, Jellyfin config,\nHedgedoc uploads, Vibravid config,\nLibrePhotos protected media)"]
-        Bulk["Bulk media & documents\n(Jellyfin, Forgejo, LibrePhotos,\nFilebrowser, Vibravid)"]
+        Small["App config volumes\n(Vaultwarden, Jellyfin config,\nHedgedoc uploads, Vibravid config,\nRomM data, LibrePhotos protected media)"]
+        Bulk["Bulk media & documents\n(Jellyfin, Forgejo, LibrePhotos,\nFilebrowser, Vibravid, RomM)"]
     end
 
     Casper["casper\nNFS server\n/mnt/vault, /mnt/media"]
@@ -228,8 +229,8 @@ flowchart LR
 ```
 
 - **`longhorn-single-replica`** (custom `StorageClass`, `numberOfReplicas: 1`) is used where the workload has its own redundancy or the data is rebuildable: Postgres (CNPG replicates at the database level), Prometheus/Alertmanager/Grafana, kubecraft worlds, LibrePhotos protected media and Vibravid config. This avoids Longhorn's replication overhead on a small cluster.
-- **`longhorn`** (default, 3 replicas) backs smaller, higher-value single-instance app volumes (Vaultwarden data, Jellyfin config, Filebrowser config).
-- **Static NFS PVs**, all served by `casper` (`192.168.10.101`) and mounted `ReadWriteMany` with NFSv4, back bulk storage: Jellyfin's library, Forgejo's git data, LibrePhotos' photo library, Filebrowser's shared folders and Vibravid's downloads. Each NFS-backed app gets its own `PersistentVolume`/`PersistentVolumeClaim` pair pointing at a specific export (`/mnt/media`, `/mnt/vault/git`, `/mnt/vault/data`).
+- **`longhorn`** (default, 3 replicas) backs smaller, higher-value single-instance app volumes (Vaultwarden data, Jellyfin config, Filebrowser config, RomM data).
+- **Static NFS PVs**, all served by `casper` (`192.168.10.101`) and mounted `ReadWriteMany` with NFSv4, back bulk storage: Jellyfin's library, Forgejo's git data, LibrePhotos' photo library, Filebrowser's shared folders, Vibravid's downloads and RomM's ROM library. Each NFS-backed app gets its own `PersistentVolume`/`PersistentVolumeClaim` pair pointing at a specific export (`/mnt/media`, `/mnt/vault/git`, `/mnt/vault/data`).
 - The Longhorn UI is protected by a Traefik `basicAuth` middleware backed by a sealed secret, and a `NetworkPolicy` lets only Prometheus scrape Longhorn manager metrics on `9500`.
 
 ---
@@ -294,9 +295,10 @@ flowchart TB
         Role5["DatabaseRole: librephoto"] --> DB5["Database: librephoto"]
         Role6["DatabaseRole: kubecraft"] --> DB6["Database: kubecraft"]
         Role7["DatabaseRole: lastgasp"] --> DB7["Database: lastgasp"]
+        Role8["DatabaseRole: romm"] --> DB8["Database: romm"]
     end
 
-    DB1 & DB2 & DB3 & DB4 & DB5 & DB6 & DB7 -.->|hosted on| CNPGCluster
+    DB1 & DB2 & DB3 & DB4 & DB5 & DB6 & DB7 & DB8 -.->|hosted on| CNPGCluster
     App1[forgejo pod] --> RWSvc
 ```
 
@@ -304,7 +306,7 @@ flowchart TB
 - Each app owns its own login role and database via CNPG's declarative `DatabaseRole`/`Database` CRDs (waves 3 and 4, after the cluster at wave 2). Apps share only the cluster, never credentials or a database.
 - Credentials are **sealed secrets in Git**: the same `<app>-db-credentials` secret is sealed once for the `database` namespace (used by the CNPG role) and once for the app namespace (read by the pod via `secretKeyRef`).
 - The database `NetworkPolicy` accepts 5432 only from the specific client pods, matched by namespace and pod label.
-- Consumers: **Forgejo**, **Hedgedoc**, **Vaultwarden**, **Jellyfin** (Postgres-backed image), **LibrePhotos**, **kubecraft** and **lastgasp**.
+- Consumers: **Forgejo**, **Hedgedoc**, **Vaultwarden**, **Jellyfin** (Postgres-backed image), **LibrePhotos**, **RomM**, **kubecraft** and **lastgasp**.
 - Dump and restore commands: [`notes/kubectl.md`](notes/kubectl.md#database-cnpg).
 
 ---
@@ -320,6 +322,7 @@ flowchart TB
 | **Hedgedoc** | Collaborative Markdown editor | `quay.io/hedgedoc/hedgedoc` | `doc.fferrando.cc` (public only) | uploads PVC (5Gi) + CNPG |
 | **Filebrowser Quantum** | Web file manager over the NAS shares | `gtstef/filebrowser` | `files.internal.fferrando.cc` · `files.fferrando.cc` | Longhorn config (5Gi) + NFS data & media |
 | **Vibravid** | Video downloader into the media share | `ghcr.io/astraelabs/vibravid` | `download.internal.fferrando.cc` (internal only) | Longhorn config (1Gi) + NFS media (`TV/`) |
+| **RomM** | ROM manager and in-browser emulation | `rommapp/romm` | `rom.internal.fferrando.cc` (internal only) | Longhorn data (10Gi) + NFS ROMs/BIOS (`Filippo/Games/`) + CNPG |
 | **kubecraft** | On-demand Minecraft servers with a management UI (own Helm chart) | `git.fferrando.cc/rdfilippo` (OCI chart) | `mine.fferrando.cc` · game traffic via playit.gg and mc-router | Longhorn single-replica worlds + CNPG |
 | **Portfolio** | Personal site, built by CI into Forgejo's registry | `git.fferrando.cc/rdfilippo/portfolio:<YYYYMMDD-HHMM>` | `fferrando.cc` (public only) | stateless |
 | **anvil website** | anvil project site (prerendered SvelteKit), built by CI into Forgejo's registry | `git.fferrando.cc/anvil/website:<YYYYMMDD-HHMM>` | `anvil.fferrando.cc` (public only) | stateless |

@@ -246,9 +246,10 @@ kubectl rollout restart -n kube-system deploy/sealed-secrets
 | `tunnel-token` | `cloudflared` | `token` | `infrastructure/cloudflared/sealed-tunnel-token.yaml` | From the Zero Trust tunnel page (literal). |
 | `longhorn-auth-secret` | `longhorn-system` | `users` | `infrastructure/longhorn/sealed-longhorn-auth.yaml` | htpasswd. |
 | `traefik-dashboard-auth-secret` | `traefik` | `users` | `infrastructure/traefik/sealed-dashboard-auth.yaml` | htpasswd. |
-| `<app>-db-credentials` | `database` + app ns | `username`, `password` | `apps/<app>/db_secret.yaml`, `deployment_secret.yaml` | DB credentials recipe. Used by forgejo, hedgedoc, jellyfin, librephoto, vaultwarden, kubecraft, lastgasp. |
+| `<app>-db-credentials` | `database` + app ns | `username`, `password` | `apps/<app>/db_secret.yaml`, `deployment_secret.yaml` | DB credentials recipe. Used by forgejo, hedgedoc, jellyfin, librephoto, vaultwarden, romm, kubecraft, lastgasp. |
 | `forgejo-resend-credentials` | `forgejo` | `smtp-user`, `smtp-password` | `apps/forgejo/resend-secrets.yaml` | Resend SMTP credentials (literals). |
 | `librephoto-secret-key` | `librephoto` | `secret-key` | `apps/librephoto/secret-key.yaml` | `openssl rand -hex 32`. |
+| `romm-secrets` | `romm` | `ROMM_AUTH_SECRET_KEY` | `apps/romm/secrets.yaml` | `openssl rand -hex 32`. |
 | `kubecraft-secrets` | `minecraft` | `SESSION_SECRET`, `BOOTSTRAP_ADMIN_USER`, `BOOTSTRAP_ADMIN_PASSWORD` | `apps/kubecraft/secrets.yaml` | `SESSION_SECRET` from `openssl rand -hex 32`. The admin must change the password at first login. |
 | `kubecraft-playit` | `minecraft` | `SECRET_KEY` | `apps/kubecraft/playit_secret.yaml` | Must be a **self-managed agent** key (dashboard keys are read only). Use the claim script, which writes the Secret to stdout so the key never shows on screen: `~/Desktop/Projects/kubecraft/hack/playit-claim.sh minecraft kubecraft-playit \| kubeseal ... > apps/kubecraft/playit_secret.yaml` |
 | `lastgasp-auth` | `lastgasp` | `auth` | `infrastructure/lastgasp/auth_secret.yaml` | Seal-a-file recipe above. |
@@ -363,7 +364,7 @@ kubectl run nettest -n forgejo --rm -it --restart=Never --image=busybox:1.37 -- 
   nc -zv homelab-db-rw.database.svc.cluster.local 5432
 ```
 
-In namespaces enforcing PSS `restricted` (`database`, `cloudflared`, `minecraft`, `portfolio`, `filebrowser`, `hedgedoc`, `jellyfin`, `vaultwarden`, `vibravid`), a bare pod is rejected. Run the test from another namespace, or use `kubectl debug` on an existing pod.
+In namespaces enforcing PSS `restricted` (`database`, `cloudflared`, `minecraft`, `portfolio`, `filebrowser`, `hedgedoc`, `jellyfin`, `vaultwarden`, `vibravid`, `romm`), a bare pod is rejected. Run the test from another namespace, or use `kubectl debug` on an existing pod.
 
 Traefik routing problems:
 

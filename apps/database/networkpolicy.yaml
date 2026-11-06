@@ -56,6 +56,12 @@ spec:
               app: librephoto-backend
         - namespaceSelector:
             matchLabels:
+              kubernetes.io/metadata.name: romm
+          podSelector:
+            matchLabels:
+              app: romm
+        - namespaceSelector:
+            matchLabels:
               kubernetes.io/metadata.name: lastgasp
           podSelector:
             matchLabels:

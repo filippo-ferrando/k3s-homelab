@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: romm
+  namespace: romm
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  selector:
+    app: romm
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: romm
+  namespace: romm
+  labels:
+    app: romm
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  replicas: 1
+  # ReadWriteOnce volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: romm
+  template:
+    metadata:
+      labels:
+        app: romm
+    spec:
+      # No RBAC is granted to the default SA: no reason to mount its token
+      automountServiceAccountToken: false
+      securityContext:
+        # romm user of the image; numeric uid so the kubelet can verify runAsNonRoot
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: romm
+          image: rommapp/romm:5.4.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ROMM_BASE_URL
+              value: "https://rom.internal.fferrando.cc"
+            - name: ROMM_SESSION_SECURE_COOKIE
+              value: "true"
+            - name: ROMM_DB_DRIVER
+              value: "postgresql"
+            - name: DB_HOST
+              value: "homelab-db-rw.database.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "romm"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: romm-db-credentials
+                  key: username
+            - name: DB_PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: romm-db-credentials
+                  key: password
+            - name: ROMM_AUTH_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: romm-secrets
+                  key: ROMM_AUTH_SECRET_KEY
+            - name: HASHEOUS_API_ENABLED
+              value: "true"
+            - name: LAUNCHBOX_API_ENABLED
+              value: "true"
+            - name: PLAYMATCH_API_ENABLED
+              value: "true"
+            - name: SCAN_WORKERS
+              value: "4"
+            - name: WEB_SERVER_CONCURRENCY
+              value: "4"
+          volumeMounts:
+            # Read-only root filesystem: nginx/gunicorn pids and temp files, RomM cache (/tmp/romm)
+            - name: tmp
+              mountPath: /tmp
+            # The entrypoint renders the nginx templates here
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+            # Paths the upstream docker-compose.yml persists, as subPaths of one PVC
+            - name: data
+              mountPath: /romm/resources
+              subPath: resources
+            - name: data
+              mountPath: /romm/assets
+              subPath: assets
+            - name: data
+              mountPath: /romm/config
+              subPath: config
+            - name: data
+              mountPath: /redis-data
+              subPath: redis-data
+            # Library in structure A: library/roms/<platform>, library/bios/<platform>
+            - name: games
+              mountPath: /romm/library/roms
+              subPath: Filippo/Games/Roms
+            - name: games
+              mountPath: /romm/library/bios
+              subPath: Filippo/Games/Bios
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          # Migrations run before the server starts: long initial delay
+          livenessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 10Gi
+        - name: nginx-conf
+          emptyDir:
+            sizeLimit: 1Mi
+        - name: data
+          persistentVolumeClaim:
+            claimName: romm-data
+        - name: games
+          persistentVolumeClaim:
+            claimName: romm-data-nfs
