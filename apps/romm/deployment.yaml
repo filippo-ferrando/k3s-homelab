@@ -22,6 +22,8 @@ spec:
     spec:
       # No RBAC is granted to the default SA: no reason to mount its token
       automountServiceAccountToken: false
+      # Service `romm` would inject ROMM_PORT=tcp://<ip>:8080, which RomM reads as its listen port
+      enableServiceLinks: false
       securityContext:
         # romm user of the image; numeric uid so the kubelet can verify runAsNonRoot
         runAsNonRoot: true
