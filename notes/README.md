@@ -9,6 +9,7 @@ Runbooks and reference material for the homelab.
 | [`guides/app_config.md`](guides/app_config.md) | How to manage app config the GitOps way: env vars vs. a mounted ConfigMap. |
 | [`guides/patch_running_cluster.md`](guides/patch_running_cluster.md) | One-time hardening of the running cluster: secrets encryption, firewall, NFS exports, Cloudflare exposure, with tests and rollbacks. |
 | [`guides/jellyfin_home_lan.md`](guides/jellyfin_home_lan.md) | Exposing Jellyfin to the main home LAN (OPNsense port forward + dedicated Traefik entrypoint). |
+| [`backup-plan.md`](backup-plan.md) | Plan to move the Borg backup from the cron job on magi to a Kubernetes CronJob (borgmatic + kube-state-metrics). |
 | [`improvements.md`](improvements.md) | Prioritized list of security and reliability improvements from the full repo review. |
 | [`security/`](security/) | Security audits and their open findings. |
 

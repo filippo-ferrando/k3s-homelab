@@ -90,7 +90,7 @@
           --prefer-bundled-bin \
           --kube-proxy-arg=proxy-mode=nftables
       args:
-        creates: /etc/rancher/k3s/k3s-agent.env
+        creates: /etc/systemd/system/k3s-agent.service.env
 
 - name: Report secrets encryption status
   hosts: k3s_servers[0]
