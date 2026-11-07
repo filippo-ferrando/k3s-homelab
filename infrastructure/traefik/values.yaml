@@ -53,7 +53,8 @@ service:
   # ClusterIP-only Service for ports that must never be reachable from the LAN (cf-public)
   additionalServices:
     internal:
-      type: ClusterIP
+      spec:
+        type: ClusterIP
 
 ingressRoute:
   dashboard:
