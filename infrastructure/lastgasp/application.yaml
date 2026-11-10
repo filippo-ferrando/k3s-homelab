@@ -11,7 +11,7 @@ spec:
   sources:
     - chart: lastgasp
       repoURL: git.fferrando.cc/rdfilippo
-      targetRevision: 0.1.5
+      targetRevision: 0.2.0
       helm:
         valueFiles:
           - $values/infrastructure/lastgasp/values.yaml

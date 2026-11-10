@@ -6,6 +6,18 @@ Newest first.
 
 ---
 
+## 2026-11-10: lastgasp 0.2.0 and journal shipping
+
+**What**
+- lastgasp chart and images moved from `0.1.5` to `0.2.0`.
+- Agents now ship the node journal (`warning` and more severe, 200 lines/s) through the `lastgasp-agent-journal` image, reading `/run/log/journal` only (`persistent: false`). Agent memory limit raised from 128Mi to 192Mi for journalctl.
+- Server records are capped at 2GiB (`retainBytes`) in addition to the 720h retention.
+- Not enabled: `agent.pmsg` (the AlmaLinux kernel has no `CONFIG_PSTORE_PMSG`) and `server.netconsole` (needs the server pinned to one node and per-node `modprobe.d` config).
+
+**Why**
+- Userspace errors before a hang (OOM kills, systemd unit failures, storage errors) were not captured. The nodes keep the journal in RAM only, so it was lost on every reboot.
+- The lastgasp database shares `homelab-db` with other apps; a size cap bounds its growth.
+
 ## 2026-11-06: RomM
 
 **What**

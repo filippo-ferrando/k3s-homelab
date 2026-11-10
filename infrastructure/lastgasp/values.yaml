@@ -9,6 +9,9 @@ server:
   persistence:
     enabled: false
 
+  # Records are deleted after 720h (chart default) or once they exceed 2GiB on the shared homelab-db
+  retainBytes: 2GiB
+
   auth:
     existingSecret: lastgasp-auth
 
@@ -23,6 +26,13 @@ agent:
     tokenSecret:
       name: lastgasp-join
   kmsgHostPath: false
+  # Userspace journal lines, sent over the same UDP 5140 as kmsg.
+  # The nodes keep the journal in RAM only (/run/log/journal, no /var/log/journal), hence persistent: false.
+  journal:
+    enabled: true
+    priority: warning
+    rate: 200
+    persistent: false
   podSecurityContext:
     seLinuxOptions:
       type: spc_t
@@ -41,7 +51,8 @@ agent:
       cpu: 10m
       memory: 96Mi
     limits:
-      memory: 128Mi
+      # 128Mi + 64Mi for journalctl, as recommended upstream
+      memory: 192Mi
       devic.es/kmsg: 1
 
 metrics:

@@ -16,7 +16,7 @@ Every folder under `apps/` and `infrastructure/` has its own `README.md` describ
 | **Database** | CloudNativePG (HA Postgres, 3 instances) |
 | **Secrets** | Bitnami Sealed Secrets |
 | **Security** | NetworkPolicies (ingress + egress) on every namespace, Pod Security Admission, Falco runtime detection |
-| **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway + lastgasp (node kernel logs) |
+| **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway + lastgasp (node kernel logs and journal) |
 | **Maintenance** | Kured (reboot orchestration) + descheduler + Ansible patch playbooks + Renovate |
 | **Backups** | Borg on the host, metrics pushed to Prometheus via Pushgateway |
 | **Provisioning** | Ansible (OS prep, k3s bootstrap, NFS, backup jobs) |
@@ -195,7 +195,7 @@ App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.ya
 | **kube-prometheus-stack** | Prometheus, Grafana, Alertmanager, node-exporter | `prometheus-community` | `monitoring` |
 | **Pushgateway** | Accepts metrics pushed from host jobs (Borg backups), persisted on a Longhorn volume | `prometheus-community` | `monitoring` |
 | **Falco** | Runtime intrusion detection (modern eBPF) + Falcosidekick | `falcosecurity.github.io/charts` | `falco` |
-| **lastgasp** | Collects node kernel logs (`/dev/kmsg`) so a node's last messages before a crash survive | own chart, Forgejo OCI registry | `lastgasp` |
+| **lastgasp** | Collects node kernel logs (`/dev/kmsg`, pstore) and journal lines (`warning` and above) so a node's last messages before a crash survive | own chart, Forgejo OCI registry | `lastgasp` |
 | **generic-device-plugin** | Hands `/dev/kmsg` to lastgasp agents as a resource, so they don't run privileged | raw manifest | `kube-system` |
 | **Argo CD** | GitOps controller (bootstrapped by Ansible, then manages itself) | `argoproj.github.io/argo-helm` | `argocd` |
 
@@ -354,7 +354,7 @@ flowchart LR
 - **kube-prometheus-stack** provides Prometheus, Grafana and Alertmanager, all persisted on `longhorn-single-replica` volumes. Prometheus retention is bounded (3 days / 3GiB), and heavy apiserver/etcd histogram metrics are dropped.
 - Prometheus selects every `ServiceMonitor`/`PodMonitor` in every namespace. Wired up: Traefik, Longhorn, CloudNativePG, cert-manager, Kured, Pushgateway, Falco, lastgasp and kubecraft.
 - **Grafana dashboards** live in Git as ConfigMaps loaded by the Grafana sidecar (homelab overview, kubecraft, and anonymized public copies). UI edits are not persisted.
-- **lastgasp** keeps every node's kernel log in Postgres, so the messages before a crash or hang survive the reboot.
+- **lastgasp** keeps every node's kernel log and journal (`warning` and above) in Postgres, so the messages before a crash or hang survive the reboot.
 - **Falco** watches syscalls on every node. Custom rules whitelist known-good behaviour (CNPG WAL archiving, controllers talking to the k8s API, Forgejo sshd).
 - Grafana is at `stats.internal.fferrando.cc`. The default admin password must be changed at first login.
 
