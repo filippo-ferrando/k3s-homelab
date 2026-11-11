@@ -23,12 +23,21 @@ prometheus:
             requests:
               storage: 7Gi
 
+# k3s runs apiserver, etcd client and kubelet in one process, so the kubelet
+# /metrics endpoint re-exposes the same apiserver/etcd histograms on every node.
+# Drop them on both jobs to keep Prometheus head series (and GC pressure) low.
 kubeApiServer:
   serviceMonitor:
     metricRelabelings:
-      - sourceLabels: [__name__]
+      - &dropApiserverHistograms
+        sourceLabels: [__name__]
         action: drop
-        regex: '(apiserver_request_duration_seconds_bucket|apiserver_request_sli_duration_seconds_bucket|apiserver_request_body_size_bytes_bucket|apiserver_response_sizes_bucket|apiserver_watch_events_sizes_bucket|apiserver_watch_list_duration_seconds_bucket|apiserver_watch_cache_read_wait_seconds_bucket|etcd_request_duration_seconds_bucket|workqueue_work_duration_seconds_bucket|workqueue_queue_duration_seconds_bucket)'
+        regex: '(apiserver_.*_bucket|etcd_request_duration_seconds_bucket|workqueue_.*_duration_seconds_bucket)'
+
+kubelet:
+  serviceMonitor:
+    metricRelabelings:
+      - *dropApiserverHistograms
 
 prometheus-node-exporter:
   resources:

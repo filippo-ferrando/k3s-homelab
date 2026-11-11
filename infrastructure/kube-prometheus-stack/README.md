@@ -11,7 +11,7 @@ Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics and the Pro
 |---|---|---|
 | `namespace.yaml` | -3 | Namespace. |
 | `application.yaml` | -1 | Argo CD Application for the chart, with values from this repo. `ServerSideApply=true` for the large CRDs. |
-| `values.yaml` | - | Prometheus retention 3d / 3GiB on 7Gi `longhorn-single-replica`, cluster-wide monitor selection, heavy apiserver/etcd histogram metrics dropped. node-exporter runs as root with SELinux type `spc_t` + `DAC_READ_SEARCH` so filesystem metrics work on `--selinux` k3s nodes. Grafana has persistence and `allow_embedding: true`. Resource limits for every component. |
+| `values.yaml` | - | Prometheus retention 3d / 3GiB on 7Gi `longhorn-single-replica`, cluster-wide monitor selection, heavy apiserver/etcd/workqueue histogram metrics dropped on both the `apiserver` and `kubelet` jobs (k3s re-exposes them on each node's kubelet `/metrics`, which previously added about 230k series and caused GC-bound CPU spikes during the 2-hourly TSDB compaction). node-exporter runs as root with SELinux type `spc_t` + `DAC_READ_SEARCH` so filesystem metrics work on `--selinux` k3s nodes. Grafana has persistence and `allow_embedding: true`. Resource limits for every component. |
 | `certificate.yaml` | 2 | Certificate for `stats.internal.fferrando.cc`. |
 | `ingressroute.yaml` | 2 | Internal Grafana route with the `grafana-ui-deny-frame` middleware. |
 | `ingressroute-public.yaml` | 2 | Public route on `cf-public` that matches **only** `/public-dashboards/`, `/api/public/` and `/public/`. Login, `/d/*`, the datasource API and Explore never leave the LAN. |
