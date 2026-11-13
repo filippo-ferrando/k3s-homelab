@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: anvil-website
-          image: git.fferrando.cc/anvil/website:20261105-1657
+          image: git.fferrando.cc/anvil/website:20261110-1958
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
