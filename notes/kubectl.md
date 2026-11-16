@@ -344,17 +344,96 @@ List the backups (on casper, or from any pod that mounts `pg-backups-nfs`):
 ssh casper@192.168.10.101 'ls -l /mnt/vault/data/backups/pg_db/'
 ```
 
-**Restore a database from a scheduled backup.** The `.dump` files are `pg_dump -Fc`, so use `pg_restore`, as the app's own role (owner of the objects). `--clean --if-exists` drops and recreates the objects in the existing database. Stop the app first (scale it to 0) so it does not write during the restore:
+### Restore from a scheduled backup
+
+Each backup directory holds one `pg_dump -Fc` file per database. A restore puts one database back into `homelab-db`, under its existing CNPG `DatabaseRole` and `Database`. Data written after the backup is lost (up to one week), so first check that a newer backup does not exist.
+
+**Pick the cluster state first:**
+
+| Situation | Before the per-database procedure |
+|---|---|
+| One app's data is wrong (bad migration, deleted rows), the cluster is healthy | Nothing. Restore only that database. |
+| The cluster or all of its PVCs are gone (namespace deleted, Longhorn volumes lost) | Argo CD recreates everything from Git: the `Cluster` (wave 2), the `DatabaseRole`s with their sealed passwords (wave 3), and empty `Database`s (wave 4). Wait until `kubectl cnpg status homelab-db -n database` shows the cluster healthy and `kubectl get databases.postgresql.cnpg.io -n database` shows `APPLIED true` for every database. The apps may initialise empty schemas in the meantime; the procedure below replaces them. Then restore every database. |
+| The cluster exists but no instance is usable (corruption replicated to every replica, failover does not help) | Take a manual `pg_dump` of anything still readable (see above). Then `kubectl delete cluster homelab-db -n database`. **This deletes the instance PVCs.** Argo CD recreates the cluster, as in the previous row. |
+
+Roles and their passwords come from Git (`DatabaseRole` plus SealedSecrets), so `globals.sql` is not restored. It is a reference only: compare `grep 'CREATE ROLE' globals.sql` with `kubectl cnpg psql homelab-db -n database -- -c '\du'` to find a role created by hand outside Git.
+
+Every database is owned by the role with the same name. Database, workload and Argo CD Application that owns the workload:
+
+| Database | Workload | Argo CD app (pause self-heal on these) |
+|---|---|---|
+| `forgejo` | `deploy/forgejo -n forgejo` | `root-apps` |
+| `hedgedoc` | `deploy/hedgedoc -n hedgedoc` | `root-apps` |
+| `jellyfin` | `deploy/jellyfin -n jellyfin` | `root-apps` |
+| `librephoto` | `deploy/librephoto-backend -n librephoto` | `root-apps` |
+| `romm` | `deploy/romm -n romm` | `root-apps` |
+| `vaultwarden` | `deploy/vaultwarden -n vaultwarden` | `root-apps` |
+| `kubecraft` | `deploy/kubecraft -n minecraft` | `root-apps`, then `kubecraft` |
+| `lastgasp` | `deploy/lastgasp-server -n lastgasp` | `root-infrastructure`, then `lastgasp` |
+
+`app_db` is the empty bootstrap database. It is not restored.
+
+**Per-database procedure** (example: `forgejo`). Every command runs `psql`/`pg_restore` inside the primary as `postgres` over the local socket, so no password, port-forward or local Postgres tools are needed. The dump streams from casper over SSH.
 
 ```bash
-scp casper@192.168.10.101:/mnt/vault/data/backups/pg_db/<timestamp>/forgejo.dump .
-kubectl scale deploy/forgejo -n forgejo --replicas=0
-kubectl port-forward -n database svc/homelab-db-rw 5432:5432    # leave it running
-pg_restore -h localhost -p 5432 -U forgejo -d forgejo --clean --if-exists --no-owner forgejo.dump
-kubectl scale deploy/forgejo -n forgejo --replicas=1
+DB=forgejo
+TS=2026-11-22T053000                      # backup directory, see "List the backups"
+SRC=/mnt/vault/data/backups/pg_db/$TS
+PRIMARY=$(kubectl get cluster homelab-db -n database -o jsonpath='{.status.currentPrimary}')
 ```
 
-`pg_restore --list forgejo.dump` shows the contents without restoring. The local `pg_restore` must be at least the dump's major version (18).
+1. **Stop the app**, so nothing writes during the restore. Argo CD self-heal would scale it straight back up, so pause it on the apps from the table first. `root-apps` and `root-infrastructure` are not managed by another app, so the patch holds until step 6:
+
+   ```bash
+   kubectl patch application root-apps -n argocd --type merge -p '{"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+   kubectl scale deploy/forgejo -n forgejo --replicas=0
+   kubectl get pods -n forgejo               # wait until the app pod is gone
+   ```
+
+2. **Recreate the database empty.** `pg_restore --clean` only drops objects that are in the dump, so tables added after the backup (for example by a newer app migration) would survive. Dropping the database avoids that. `WITH (FORCE)` closes any leftover connection:
+
+   ```bash
+   kubectl exec -n database "$PRIMARY" -c postgres -- psql -X -v ON_ERROR_STOP=1 \
+     -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "CREATE DATABASE $DB OWNER $DB"
+   ```
+
+   If `CREATE DATABASE` reports "already exists", the CNPG `Database` controller recreated it first. That is fine; continue.
+
+3. **Restore.** `--role` makes every object owned by the app role, as in the original. `--single-transaction` makes it all-or-nothing: on any error nothing is applied, and the database stays empty:
+
+   ```bash
+   ssh casper@192.168.10.101 "cat $SRC/$DB.dump" \
+   | kubectl exec -i -n database "$PRIMARY" -c postgres -- \
+       pg_restore -d "$DB" --no-owner --role="$DB" --single-transaction
+   ```
+
+4. **Verify** against the row counts recorded when the backup was taken. No output from `diff` means every table matches:
+
+   ```bash
+   kubectl exec -i -n database "$PRIMARY" -c postgres -- psql -X -q -At -F $'\t' -d "$DB" <<'SQL' \
+   | LC_ALL=C sort > "$DB.restored.counts"
+   SELECT format('SELECT %L, count(*) FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename)
+     FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY 1 \gexec
+   SQL
+   ssh casper@192.168.10.101 "cat $SRC/$DB.counts" | diff - "$DB.restored.counts" && echo "row counts match"
+   ```
+
+5. **Repeat steps 2 to 4** for every other database to restore. For a full rebuild, loop over the backup's `databases.txt`, skipping `app_db`.
+
+6. **Start the apps and restore self-heal.** Re-applying the root apps resets their sync policy. They then reset the child apps (`kubecraft`, `lastgasp`), and every app scales back to the replica count in Git:
+
+   ```bash
+   kubectl apply -f system/root-app.yaml
+   kubectl get pods -n forgejo -w            # app starts and connects
+   ```
+
+7. **Take a fresh backup**, so the next restore does not depend on the old one:
+
+   ```bash
+   kubectl create job -n database --from=cronjob/pg-backup pg-backup-after-restore
+   ```
+
+To look inside a dump without restoring it: `ssh casper@192.168.10.101 "cat $SRC/$DB.dump" | kubectl exec -i -n database "$PRIMARY" -c postgres -- pg_restore --list`.
 
 ## Storage (Longhorn, PVCs)
 
