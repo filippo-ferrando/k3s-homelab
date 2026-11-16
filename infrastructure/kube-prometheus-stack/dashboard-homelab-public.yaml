@@ -2230,7 +2230,7 @@ data:
           "targets": [
             {
               "editorMode": "code",
-              "expr": "max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"} >= bool kube_cronjob_status_last_schedule_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"})",
+              "expr": "max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"}) >= bool max by (cronjob) (label_replace(kube_job_status_start_time{namespace=\"database\",job_name=~\"pg-(backup|restore-test)-.*\"}, \"cronjob\", \"$1\", \"job_name\", \"(pg-backup|pg-restore-test)-.*\"))",
               "legendFormat": "{{cronjob}}",
               "range": true,
               "refId": "A",

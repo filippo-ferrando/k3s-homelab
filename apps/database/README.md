@@ -63,10 +63,10 @@ Files are mode 0644 on purpose: Borg on magi reads `/mnt/vault` through a `root_
 **Status:** the "Host & DB Backups (Borg / CNPG)" row of the Homelab Overview and public dashboards shows the last result, days since the last success, and the duration of both CronJobs, from kube-state-metrics:
 
 ```promql
-max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="database",cronjob=~"pg-backup|pg-restore-test"} >= bool kube_cronjob_status_last_schedule_time{namespace="database",cronjob=~"pg-backup|pg-restore-test"})
+max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="database",cronjob=~"pg-backup|pg-restore-test"}) >= bool max by (cronjob) (label_replace(kube_job_status_start_time{namespace="database",job_name=~"pg-(backup|restore-test)-.*"}, "cronjob", "$1", "job_name", "(pg-backup|pg-restore-test)-.*"))
 (time() - max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="database",cronjob=~"pg-backup|pg-restore-test"})) / 86400
 ```
 
-The status panel needs `lastScheduleTime`, which only scheduled runs set: it shows "no data" until the first Sunday run, even after manual runs.
+The status query compares the last success with the start time of the newest retained Job, not with `lastScheduleTime`: manual runs (`kubectl create job --from=cronjob/...`) never set `lastScheduleTime`, but they are owned by the CronJob and do update `lastSuccessfulTime`.
 
 Manual runs, logs, and restoring a database from a dump: `notes/kubectl.md#database-cnpg`.

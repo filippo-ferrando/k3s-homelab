@@ -2147,7 +2147,7 @@ data:
         {
           "id": 73,
           "title": "Postgres Backup / Restore Test Status",
-          "description": "Result of the last scheduled run of the pg-backup and pg-restore-test CronJobs (database namespace). FAILED also shows while a run is in progress. Source: kube-state-metrics.",
+          "description": "Result of the newest pg-backup and pg-restore-test Job (database namespace), scheduled or manual: OK when the last success is newer than the start of the newest retained Job. FAILED also shows while a run is in progress. Source: kube-state-metrics.",
           "links": [],
           "type": "stat",
           "pluginVersion": "13.2.2",
@@ -2218,7 +2218,7 @@ data:
           "targets": [
             {
               "editorMode": "code",
-              "expr": "max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"} >= bool kube_cronjob_status_last_schedule_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"})",
+              "expr": "max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"}) >= bool max by (cronjob) (label_replace(kube_job_status_start_time{namespace=\"database\",job_name=~\"pg-(backup|restore-test)-.*\"}, \"cronjob\", \"$1\", \"job_name\", \"(pg-backup|pg-restore-test)-.*\"))",
               "legendFormat": "{{cronjob}}",
               "range": true,
               "refId": "A",
