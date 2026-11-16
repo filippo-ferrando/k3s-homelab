@@ -6,6 +6,20 @@ Newest first.
 
 ---
 
+## 2026-11-16: Weekly CNPG backups with an automated restore test
+
+**What**
+- CronJob `pg-backup` (`apps/database`, Sunday 05:30): logical backup of every database on `homelab-db` (`pg_dump -Fc` per database plus globals without role passwords) to a new NFS PVC on `casper:/mnt/vault/data/backups/pg_db`. Keeps 8 weekly backups.
+- CronJob `pg-restore-test` (Sunday 06:30): restores the newest backup into a throwaway Postgres inside the pod and fails unless every table's row count matches the manifest recorded in the dump's own snapshot. Also fails if the newest backup is older than 8 days.
+- New read-only role `backup` (`pg_read_all_data`), password in a SealedSecret.
+- `ansible/provision/06_nfs.yml` creates the backup directory, owned by uid 26.
+- The Grafana "Host & DB Backups" row (overview and public dashboards) gains status, age and duration panels for both CronJobs, from kube-state-metrics. The unused `backup_dump_bytes` query was removed.
+
+**Why**
+- The database had no scheduled backup, only a manual `pg_dump` procedure.
+- A backup counts only if it restores, so the restore is tested every week rather than assumed.
+- CNPG's native backups need an object store (Barman Cloud plugin) or VolumeSnapshots plus a Longhorn backup target, and neither exists here. Plain dump files on NFS also end up in the existing Borg backup of `/mnt/vault`.
+
 ## 2026-11-10: lastgasp 0.2.0 and journal shipping
 
 **What**

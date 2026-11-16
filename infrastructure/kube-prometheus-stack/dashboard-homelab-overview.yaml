@@ -1868,7 +1868,7 @@ data:
         {
           "id": 905,
           "type": "row",
-          "title": "Host & DB Backups (Borg / Pushgateway)",
+          "title": "Host & DB Backups (Borg / CNPG)",
           "collapsed": false,
           "gridPos": {
             "x": 0,
@@ -2046,7 +2046,7 @@ data:
         },
         {
           "id": 72,
-          "title": "Borg Backup Duration & Dump Size",
+          "title": "Borg Backup Duration",
           "description": "",
           "links": [],
           "type": "timeseries",
@@ -2140,13 +2140,266 @@ data:
                 "type": "prometheus",
                 "uid": "${DS_PROMETHEUS}"
               }
+            }
+          ],
+          "transformations": []
+        },
+        {
+          "id": 73,
+          "title": "Postgres Backup / Restore Test Status",
+          "description": "Result of the last scheduled run of the pg-backup and pg-restore-test CronJobs (database namespace). FAILED also shows while a run is in progress. Source: kube-state-metrics.",
+          "links": [],
+          "type": "stat",
+          "pluginVersion": "13.2.2",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 73,
+            "w": 6,
+            "h": 8
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
             },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "value": null,
+                    "color": "red"
+                  },
+                  {
+                    "value": 1,
+                    "color": "green"
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "FAILED",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "OK",
+                      "color": "green"
+                    }
+                  }
+                }
+              ],
+              "noValue": "no data"
+            },
+            "overrides": []
+          },
+          "targets": [
             {
               "editorMode": "code",
-              "expr": "backup_dump_bytes",
-              "legendFormat": "{{job}} dump size",
+              "expr": "max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"} >= bool kube_cronjob_status_last_schedule_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"})",
+              "legendFormat": "{{cronjob}}",
               "range": true,
-              "refId": "B",
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              }
+            }
+          ],
+          "transformations": []
+        },
+        {
+          "id": 74,
+          "title": "Days Since Last Successful Postgres Backup / Restore Test",
+          "description": "Both CronJobs run weekly (Sunday 05:30 and 06:30 Europe/Rome). Red after 8 days, when the restore test also starts failing on a stale backup.",
+          "links": [],
+          "type": "stat",
+          "pluginVersion": "13.2.2",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 73,
+            "w": 6,
+            "h": 8
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "d",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "value": null,
+                    "color": "green"
+                  },
+                  {
+                    "value": 7.5,
+                    "color": "orange"
+                  },
+                  {
+                    "value": 8,
+                    "color": "red"
+                  }
+                ]
+              },
+              "color": {
+                "mode": "thresholds"
+              },
+              "noValue": "never",
+              "decimals": 1
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "editorMode": "code",
+              "expr": "(time() - max by (cronjob) (kube_cronjob_status_last_successful_time{namespace=\"database\",cronjob=~\"pg-backup|pg-restore-test\"})) / 86400",
+              "legendFormat": "{{cronjob}}",
+              "range": true,
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              }
+            }
+          ],
+          "transformations": []
+        },
+        {
+          "id": 75,
+          "title": "Postgres Backup / Restore Test Duration",
+          "description": "Run time of the retained pg-backup and pg-restore-test Jobs.",
+          "links": [],
+          "type": "timeseries",
+          "pluginVersion": "13.2.2",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 73,
+            "w": 12,
+            "h": 8
+          },
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "value": null,
+                    "color": "green"
+                  },
+                  {
+                    "value": 80,
+                    "color": "red"
+                  }
+                ]
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "always",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "editorMode": "code",
+              "expr": "max by (cronjob) (label_replace(kube_job_status_completion_time{namespace=\"database\",job_name=~\"pg-(backup|restore-test)-.*\"} - kube_job_status_start_time{namespace=\"database\",job_name=~\"pg-(backup|restore-test)-.*\"}, \"cronjob\", \"$1\", \"job_name\", \"(pg-backup|pg-restore-test)-.*\"))",
+              "legendFormat": "{{cronjob}}",
+              "range": true,
+              "refId": "A",
               "datasource": {
                 "type": "prometheus",
                 "uid": "${DS_PROMETHEUS}"
@@ -2162,7 +2415,7 @@ data:
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 73,
+            "y": 81,
             "w": 24,
             "h": 1
           },
@@ -2184,7 +2437,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 74,
+            "y": 82,
             "w": 6,
             "h": 4
           },
@@ -2254,7 +2507,7 @@ data:
           },
           "gridPos": {
             "x": 6,
-            "y": 74,
+            "y": 82,
             "w": 6,
             "h": 4
           },
@@ -2324,7 +2577,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 74,
+            "y": 82,
             "w": 12,
             "h": 12
           },
@@ -2494,7 +2747,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 78,
+            "y": 86,
             "w": 12,
             "h": 8
           },
@@ -2597,7 +2850,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 86,
+            "y": 94,
             "w": 12,
             "h": 8
           },
@@ -2754,7 +3007,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 86,
+            "y": 94,
             "w": 12,
             "h": 8
           },
@@ -2829,7 +3082,7 @@ data:
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 94,
+            "y": 102,
             "w": 24,
             "h": 1
           },
@@ -2851,7 +3104,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 95,
+            "y": 103,
             "w": 12,
             "h": 8
           },
@@ -2952,7 +3205,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 95,
+            "y": 103,
             "w": 12,
             "h": 8
           },
@@ -3064,7 +3317,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 103,
+            "y": 111,
             "w": 24,
             "h": 8
           },
@@ -3159,7 +3412,7 @@ data:
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 111,
+            "y": 119,
             "w": 24,
             "h": 1
           },
@@ -3181,7 +3434,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 112,
+            "y": 120,
             "w": 12,
             "h": 8
           },
@@ -3281,7 +3534,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 112,
+            "y": 120,
             "w": 6,
             "h": 8
           },
@@ -3351,7 +3604,7 @@ data:
           },
           "gridPos": {
             "x": 18,
-            "y": 112,
+            "y": 120,
             "w": 6,
             "h": 8
           },
@@ -3451,7 +3704,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 120,
+            "y": 128,
             "w": 24,
             "h": 8
           },
@@ -3551,7 +3804,7 @@ data:
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 128,
+            "y": 136,
             "w": 24,
             "h": 1
           },
@@ -3573,7 +3826,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 129,
+            "y": 137,
             "w": 12,
             "h": 8
           },
@@ -3673,7 +3926,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 129,
+            "y": 137,
             "w": 12,
             "h": 8
           },
@@ -3746,7 +3999,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 137,
+            "y": 145,
             "w": 12,
             "h": 8
           },
@@ -3857,7 +4110,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 137,
+            "y": 145,
             "w": 12,
             "h": 8
           },
@@ -3957,7 +4210,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 145,
+            "y": 153,
             "w": 24,
             "h": 8
           },
@@ -4051,7 +4304,7 @@ data:
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 153,
+            "y": 161,
             "w": 24,
             "h": 1
           },
@@ -4070,7 +4323,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4132,7 +4385,7 @@ data:
           },
           "gridPos": {
             "x": 4,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4165,7 +4418,7 @@ data:
           },
           "gridPos": {
             "x": 8,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4212,7 +4465,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4259,7 +4512,7 @@ data:
           },
           "gridPos": {
             "x": 16,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4292,7 +4545,7 @@ data:
           },
           "gridPos": {
             "x": 20,
-            "y": 154,
+            "y": 162,
             "w": 4,
             "h": 4
           },
@@ -4328,7 +4581,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 158,
+            "y": 166,
             "w": 24,
             "h": 6
           },
@@ -4388,7 +4641,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 164,
+            "y": 172,
             "w": 12,
             "h": 8
           },
@@ -4435,7 +4688,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 164,
+            "y": 172,
             "w": 12,
             "h": 8
           },
@@ -4482,7 +4735,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 172,
+            "y": 180,
             "w": 12,
             "h": 8
           },
@@ -4547,7 +4800,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 172,
+            "y": 180,
             "w": 12,
             "h": 8
           },
@@ -4621,7 +4874,7 @@ data:
           },
           "gridPos": {
             "x": 0,
-            "y": 180,
+            "y": 188,
             "w": 12,
             "h": 8
           },
@@ -4695,7 +4948,7 @@ data:
           },
           "gridPos": {
             "x": 12,
-            "y": 180,
+            "y": 188,
             "w": 12,
             "h": 8
           },

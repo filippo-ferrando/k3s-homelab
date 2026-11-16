@@ -1,0 +1,76 @@
+# Weekly restore test: restores the newest complete backup into a throwaway Postgres inside the pod
+# (socket only, no network) and fails if any database's row counts differ from the dump-time manifest,
+# or if the newest backup is older than 8 days. Script: restore-test.sh in backup_scripts.yaml.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-restore-test
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  schedule: "30 6 * * 0"
+  timeZone: Europe/Rome
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: pg-restore-test
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsUser: 26
+            runAsGroup: 26
+            runAsNonRoot: true
+            fsGroup: 26
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: restore-test
+              image: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+              command: ["/bin/bash", "/scripts/restore-test.sh"]
+              env:
+                - name: MAX_AGE_DAYS
+                  value: "8"
+              resources:
+                requests:
+                  memory: 256Mi
+                limits:
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+                  readOnly: true
+                - name: scratch
+                  mountPath: /var/lib/scratch
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: scripts
+              configMap:
+                name: pg-backup-scripts
+            - name: backups
+              persistentVolumeClaim:
+                claimName: pg-backups-nfs
+                readOnly: true
+            # Data directory of the throwaway server; databases total ~300MB today
+            - name: scratch
+              emptyDir:
+                sizeLimit: 5Gi
+            - name: tmp
+              emptyDir: {}

@@ -18,8 +18,8 @@ Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics and the Pro
 | `middleware-grafana-embed-headers.yaml` | - | `grafana-public-embed` (CSP `frame-ancestors https://fferrando.cc`) and `grafana-ui-deny-frame` (`X-Frame-Options: DENY`). Framing is controlled per route here, because Grafana's own header is disabled. |
 | `middleware-ratelimit-grafana-public.yaml` | - | 300/min (burst 150) per `Cf-Connecting-Ip`. A shared dashboard makes about 55 requests per load, too many for the standard 60/min limit. |
 | `networkpolicy.yaml` | - | Ingress only from `monitoring` and Traefik. |
-| `dashboard-homelab-overview.yaml` | - | Main dashboard (cluster, nodes, Longhorn, Traefik, CNPG, Borg, lastgasp), as a ConfigMap labelled `grafana_dashboard` for the sidecar. |
-| `dashboard-homelab-public.yaml` | - | Anonymized copy of the overview for public sharing. Every query aggregates away node/IP/namespace/pod/PVC/DB labels. |
+| `dashboard-homelab-overview.yaml` | - | Main dashboard (cluster, nodes, Longhorn, Traefik, CNPG, Borg and CNPG backups, lastgasp), as a ConfigMap labelled `grafana_dashboard` for the sidecar. |
+| `dashboard-homelab-public.yaml` | - | Anonymized copy of the overview for public sharing. Every query aggregates away node/IP/namespace/pod/PVC/DB labels (the CNPG backup panels keep only the `cronjob` name). |
 | `dashboard-portfolio-public.yaml` | - | Public, anonymized portfolio pod dashboard, embedded on the `fferrando.cc` homepage. |
 | `dashboard-kubecraft.yaml` | - | kubecraft servers, players, resources, manager and mc-router metrics. |
 

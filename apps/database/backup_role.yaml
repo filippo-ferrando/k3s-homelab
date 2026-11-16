@@ -1,0 +1,22 @@
+# Read-only role used by the pg-backup CronJob (backup_cronjob.yaml).
+# pg_read_all_data grants SELECT on every table/sequence and USAGE on every schema, in every database.
+# The cluster has no RLS policies and no large objects (checked 2026-11-16); if either appears,
+# pg_dump fails loudly and the role needs bypassrls: true (RLS) or a superuser (large objects).
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: backup-user
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  cluster:
+    name: homelab-db
+  name: backup
+  login: true
+  inRoles:
+    - pg_read_all_data
+  # snapshot-holding session + pg_dump (or the count query) at the same time
+  connectionLimit: 3
+  passwordSecret:
+    name: backup-db-credentials

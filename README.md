@@ -18,7 +18,7 @@ Every folder under `apps/` and `infrastructure/` has its own `README.md` describ
 | **Security** | NetworkPolicies (ingress + egress) on every namespace, Pod Security Admission, Falco runtime detection |
 | **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway + lastgasp (node kernel logs and journal) |
 | **Maintenance** | Kured (reboot orchestration) + descheduler + Ansible patch playbooks + Renovate |
-| **Backups** | Borg on the host, metrics pushed to Prometheus via Pushgateway |
+| **Backups** | Borg on the host, metrics pushed to Prometheus via Pushgateway; weekly `pg_dump` of every CNPG database to NFS with an automated restore test (`apps/database`) |
 | **Provisioning** | Ansible (OS prep, k3s bootstrap, NFS, backup jobs) |
 
 ---
@@ -119,7 +119,7 @@ Deployment order is controlled through `argocd.argoproj.io/sync-wave` annotation
 | `1` | `root-apps`, cert-manager `ClusterIssuer`, Pushgateway, Falco |
 | `2` | `Certificate`s, infra IngressRoutes and middlewares, CNPG `Cluster` (`homelab-db`) |
 | `3`, `4` | Per-app CNPG `DatabaseRole` / `Database` objects |
-| `5` | App Deployments and Services, lastgasp and kubecraft Applications |
+| `5` | App Deployments and Services, CNPG backup CronJobs, lastgasp and kubecraft Applications |
 | `6` | App `IngressRoute`s and middlewares |
 
 This produces a **two-phase boot**: on a brand-new cluster, `cloudflared` and `cert-manager` show errors until their sealed secrets are created and pushed. This is expected and self-heals (see [Bootstrapping](#bootstrapping-a-new-cluster)).

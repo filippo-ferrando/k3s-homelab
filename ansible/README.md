@@ -24,7 +24,7 @@ ansible-playbook -i ansible/inventory.ini ansible/<playbook>.yml --ask-vault-pas
 | `03_tailscale.yml` | all | Installs Tailscale, enables Tailscale SSH, sets the operator and turns off its netfilter management, changing only what differs from the current prefs. `tailscale up` stays manual. |
 | `04_k3s.yml` | servers, agents | Installs k3s `k3s_version` (HA embedded etcd, SELinux, nftables kube-proxy, bundled Traefik disabled) on nodes that don't have it yet, and writes `secrets-encryption: true` to `/etc/rancher/k3s/config.yaml` on every server. Prints the secrets encryption status. |
 | `05_argocd.yml` | first server | Bootstrap only: if Argo CD is missing, renders the chart from `infrastructure/argocd/` with local `helm` and applies it. Skipped once Argo CD exists, since it then manages itself. |
-| `06_nfs.yml` | all, `nfs_storage` | `nfs-utils` everywhere. On casper: exports (rw shares to the node IPs only, `/mnt/vault` read-only to `borg_backup`), `nfs-server`, NFS closed to the rest of the LAN. |
+| `06_nfs.yml` | all, `nfs_storage` | `nfs-utils` everywhere. On casper: exports (rw shares to the node IPs only, `/mnt/vault` read-only to `borg_backup`), the CNPG backup directory `/mnt/vault/data/backups/pg_db` (owner uid/gid 26, see `apps/database`), `nfs-server`, NFS closed to the rest of the LAN. |
 | `07_backups.yml` | `borg_backup` | Installs EPEL and `borgbackup`, sets the passphrase file (`/home/magi/.bak_psw`, never in Git) to `0600`, mounts `/mnt/vault` read-only at `/mnt/casper-data`, deploys `scripts/borg_backup_personal.sh` and its cron job. |
 
 ## maintenance/

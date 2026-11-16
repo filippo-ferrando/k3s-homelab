@@ -247,6 +247,7 @@ kubectl rollout restart -n kube-system deploy/sealed-secrets
 | `longhorn-auth-secret` | `longhorn-system` | `users` | `infrastructure/longhorn/sealed-longhorn-auth.yaml` | htpasswd. |
 | `traefik-dashboard-auth-secret` | `traefik` | `users` | `infrastructure/traefik/sealed-dashboard-auth.yaml` | htpasswd. |
 | `<app>-db-credentials` | `database` + app ns | `username`, `password` | `apps/<app>/db_secret.yaml`, `deployment_secret.yaml` | DB credentials recipe. Used by forgejo, hedgedoc, jellyfin, librephoto, vaultwarden, romm, kubecraft, lastgasp. |
+| `backup-db-credentials` | `database` | `username`, `password` (type `kubernetes.io/basic-auth`) | `apps/database/backup_secret.yaml` | Read-only `backup` role used by the `pg-backup` CronJob. Random password nobody needs to know. To rotate it, reseal (`kubectl create secret generic backup-db-credentials -n database --type=kubernetes.io/basic-auth --from-literal=username=backup --from-literal=password="$(openssl rand -base64 32)" --dry-run=client -o yaml \| kubeseal --format yaml`), then add the wave annotation and the `cnpg.io/reload` label. |
 | `forgejo-resend-credentials` | `forgejo` | `smtp-user`, `smtp-password` | `apps/forgejo/resend-secrets.yaml` | Resend SMTP credentials (literals). |
 | `librephoto-secret-key` | `librephoto` | `secret-key` | `apps/librephoto/secret-key.yaml` | `openssl rand -hex 32`. |
 | `romm-secrets` | `romm` | `ROMM_AUTH_SECRET_KEY` | `apps/romm/secrets.yaml` | `openssl rand -hex 32`. |
@@ -325,6 +326,35 @@ kubectl port-forward -n database svc/homelab-db-rw 5432:5432
 # 3. in another terminal (local psql should be at least the server's major version)
 psql -h localhost -p 5432 -U forgejo -d forgejo < forgejo.sql
 ```
+
+**Scheduled backups** (`pg-backup` and `pg-restore-test`, see `apps/database/README.md`). Run one now and follow it:
+
+```bash
+kubectl create job -n database --from=cronjob/pg-backup pg-backup-manual
+kubectl logs -n database -f job/pg-backup-manual
+kubectl create job -n database --from=cronjob/pg-restore-test pg-restore-test-manual   # after the backup finishes
+kubectl logs -n database -f job/pg-restore-test-manual    # ends with "PASS: ..." or "FAIL: ..."
+kubectl delete job -n database pg-backup-manual pg-restore-test-manual
+kubectl get cronjob -n database                           # LAST SCHEDULE / LAST SUCCESSFUL
+```
+
+List the backups (on casper, or from any pod that mounts `pg-backups-nfs`):
+
+```bash
+ssh casper@192.168.10.101 'ls -l /mnt/vault/data/backups/pg_db/'
+```
+
+**Restore a database from a scheduled backup.** The `.dump` files are `pg_dump -Fc`, so use `pg_restore`, as the app's own role (owner of the objects). `--clean --if-exists` drops and recreates the objects in the existing database. Stop the app first (scale it to 0) so it does not write during the restore:
+
+```bash
+scp casper@192.168.10.101:/mnt/vault/data/backups/pg_db/<timestamp>/forgejo.dump .
+kubectl scale deploy/forgejo -n forgejo --replicas=0
+kubectl port-forward -n database svc/homelab-db-rw 5432:5432    # leave it running
+pg_restore -h localhost -p 5432 -U forgejo -d forgejo --clean --if-exists --no-owner forgejo.dump
+kubectl scale deploy/forgejo -n forgejo --replicas=1
+```
+
+`pg_restore --list forgejo.dump` shows the contents without restoring. The local `pg_restore` must be at least the dump's major version (18).
 
 ## Storage (Longhorn, PVCs)
 

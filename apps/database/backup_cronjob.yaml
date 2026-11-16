@@ -1,0 +1,84 @@
+# Weekly logical backup of every database on homelab-db to the NFS PVC (backup_volume.yaml).
+# Script: backup.sh in backup_scripts.yaml. Runs after the kured reboot window (01:00-05:00).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  schedule: "30 5 * * 0"
+  timeZone: Europe/Rome
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: pg-backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsUser: 26
+            runAsGroup: 26
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              # Same image as the cluster: pg_dump must be at least the server's major version
+              image: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+              command: ["/bin/bash", "/scripts/backup.sh"]
+              env:
+                # Backup directory names use local time, like the schedule
+                - name: TZ
+                  value: Europe/Rome
+                - name: PGHOST
+                  value: homelab-db-rw
+                - name: PGSSLMODE
+                  value: require
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-db-credentials
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-db-credentials
+                      key: password
+                - name: KEEP
+                  value: "8"
+              resources:
+                requests:
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: scripts
+              configMap:
+                name: pg-backup-scripts
+            - name: backups
+              persistentVolumeClaim:
+                claimName: pg-backups-nfs
+            - name: tmp
+              emptyDir: {}

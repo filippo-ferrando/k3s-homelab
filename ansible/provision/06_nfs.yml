@@ -45,6 +45,17 @@
       loop: "{{ nfs_exports }}"
       notify: Re-export NFS shares
 
+    # Destination of the CNPG pg_dump backups (apps/database/backup_volume.yaml). kubelet fails the
+    # mount if the directory is missing, and fsGroup has no effect on NFS, so the owner is set here:
+    # uid/gid 26 is postgres in the CNPG image. 0755 so Borg (root_squash, unprivileged) can read it.
+    - name: Create the Postgres backup directory
+      ansible.builtin.file:
+        path: /mnt/vault/data/backups/pg_db
+        state: directory
+        owner: "26"
+        group: "26"
+        mode: "0755"
+
     - name: Enable and start NFS server service
       ansible.builtin.systemd_service:
         name: nfs-server

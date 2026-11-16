@@ -1,0 +1,141 @@
+# Scripts run by backup_cronjob.yaml and restore_test_cronjob.yaml (mounted at /scripts).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-backup-scripts
+  namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  backup.sh: |
+    #!/bin/bash
+    # Weekly logical backup of every database on homelab-db.
+    # Layout: /backups/<timestamp>/{globals.sql,databases.txt,<db>.dump,<db>.counts,SHA256SUMS,COMPLETE}
+    # Connection settings (PGHOST, PGUSER, PGPASSWORD, PGSSLMODE) come from the environment.
+    set -euo pipefail
+    # World-readable: Borg reads /mnt/vault through a root_squash export as an unprivileged user
+    umask 022
+    export LC_ALL=C
+
+    BACKUP_ROOT="${BACKUP_ROOT:-/backups}"
+    KEEP="${KEEP:-8}"
+    TS="$(date +%Y-%m-%dT%H%M%S)"
+    TMP="$BACKUP_ROOT/.tmp-$TS"
+
+    log() { echo "$(date -Is) $*"; }
+
+    # Exact row count of every user table, as "schema.table<TAB>count", sorted.
+    # Must run inside a transaction that already has the snapshot set (see below).
+    COUNT_SQL="SELECT format('SELECT %L, count(*) FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename)
+      FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY 1 \gexec"
+
+    mkdir "$TMP"
+    log "writing to $TMP"
+
+    pg_dumpall --globals-only --no-role-passwords -f "$TMP/globals.sql"
+
+    psql -X -At -v ON_ERROR_STOP=1 -d postgres -c \
+      "SELECT datname FROM pg_database WHERE datallowconn AND NOT datistemplate AND datname <> 'postgres' ORDER BY 1" \
+      > "$TMP/databases.txt"
+    [[ -s "$TMP/databases.txt" ]] || { log "no databases found"; exit 1; }
+
+    while read -r db; do
+      log "dumping $db"
+      # Hold a REPEATABLE READ transaction open and export its snapshot, so pg_dump and the
+      # row counts see exactly the same data. The restore test then requires an exact match.
+      coproc SNAP { psql -X -q -At -v ON_ERROR_STOP=1 -d "$db"; }
+      # bash unsets SNAP when the coprocess exits: keep the fds and pid
+      snap_out="${SNAP[0]}" snap_in="${SNAP[1]}" snap_pid="$SNAP_PID"
+      echo "BEGIN ISOLATION LEVEL REPEATABLE READ; SELECT pg_export_snapshot();" >&"$snap_in"
+      read -r -t 60 -u "$snap_out" snapshot
+      [[ -n "$snapshot" ]] || { log "could not export a snapshot for $db"; exit 1; }
+
+      pg_dump -Fc --snapshot="$snapshot" -d "$db" -f "$TMP/$db.dump"
+
+      psql -X -q -At -F $'\t' -v ON_ERROR_STOP=1 -d "$db" <<SQL | sort > "$TMP/$db.counts"
+    BEGIN ISOLATION LEVEL REPEATABLE READ;
+    SET TRANSACTION SNAPSHOT '$snapshot';
+    $COUNT_SQL
+    COMMIT;
+    SQL
+
+      echo "COMMIT;" >&"$snap_in"
+      exec {snap_in}>&-
+      wait "$snap_pid"
+      log "$db: $(wc -l < "$TMP/$db.counts") tables, $(du -h "$TMP/$db.dump" | cut -f1)"
+    done < "$TMP/databases.txt"
+
+    (cd "$TMP" && sha256sum -- * > SHA256SUMS)
+    mv "$TMP" "$BACKUP_ROOT/$TS"
+    touch "$BACKUP_ROOT/$TS/COMPLETE"
+    log "backup $TS complete ($(du -sh "$BACKUP_ROOT/$TS" | cut -f1))"
+
+    # Retention: newest $KEEP complete backups; leftovers of failed runs after one day
+    mapfile -t complete < <(find "$BACKUP_ROOT" -mindepth 2 -maxdepth 2 -name COMPLETE -printf '%h\n' | sort)
+    if (( ${#complete[@]} > KEEP )); then
+      for old in "${complete[@]:0:${#complete[@]}-KEEP}"; do
+        log "pruning $old"
+        rm -rf -- "$old"
+      done
+    fi
+    find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -name '.tmp-*' -mmin +1440 -exec rm -rf -- {} +
+  restore-test.sh: |
+    #!/bin/bash
+    # Restores the newest complete backup into a throwaway local Postgres and checks that every
+    # database comes back with exactly the row counts recorded at dump time. Exits non-zero on any mismatch.
+    set -euo pipefail
+    export LC_ALL=C
+
+    BACKUP_ROOT="${BACKUP_ROOT:-/backups}"
+    MAX_AGE_DAYS="${MAX_AGE_DAYS:-8}"
+    SCRATCH="${SCRATCH:-/var/lib/scratch}"
+    export PGDATA="$SCRATCH/pgdata" PGHOST="${SOCKET_DIR:-/tmp}" PGUSER=postgres
+    unset PGPASSWORD PGSSLMODE
+
+    log() { echo "$(date -Is) $*"; }
+    fail() { log "FAIL: $*"; exit 1; }
+
+    COUNT_SQL="SELECT format('SELECT %L, count(*) FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename)
+      FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY 1 \gexec"
+
+    latest="$(find "$BACKUP_ROOT" -mindepth 2 -maxdepth 2 -name COMPLETE -printf '%h\n' | sort | tail -n1)"
+    [[ -n "$latest" ]] || fail "no complete backup in $BACKUP_ROOT"
+    age_days=$(( ($(date +%s) - $(stat -c %Y "$latest/COMPLETE")) / 86400 ))
+    (( age_days < MAX_AGE_DAYS )) || fail "newest backup $latest is $age_days days old (limit $MAX_AGE_DAYS)"
+    log "testing $latest ($age_days days old)"
+
+    (cd "$latest" && sha256sum --quiet -c SHA256SUMS) || fail "checksum mismatch"
+
+    initdb -D "$PGDATA" -U postgres --auth=trust --locale=C --encoding=UTF8 > /dev/null
+    pg_ctl -D "$PGDATA" -w -l "$SCRATCH/postgres.log" -o "-c listen_addresses='' -k $PGHOST" start > /dev/null
+    trap 'pg_ctl -D "$PGDATA" -m fast stop > /dev/null || true' EXIT
+
+    # Roles first, so pg_restore can assign ownership. "role postgres already exists" is expected;
+    # any other failed role shows up below as a pg_restore ownership error.
+    psql -X -q -d postgres -f "$latest/globals.sql" 2>&1 | { grep -v 'already exists' || true; }
+
+    total_tables=0
+    total_rows=0
+    while read -r db; do
+      pg_restore --exit-on-error -C -d postgres "$latest/$db.dump" || fail "pg_restore of $db"
+      psql -X -q -At -F $'\t' -v ON_ERROR_STOP=1 -d "$db" <<< "$COUNT_SQL" | sort > "$SCRATCH/$db.counts"
+      if ! diff -u "$latest/$db.counts" "$SCRATCH/$db.counts"; then
+        fail "$db: restored row counts differ from the dump-time manifest"
+      fi
+      tables=$(wc -l < "$SCRATCH/$db.counts")
+      rows=$(awk -F'\t' '{s += $2} END {print s + 0}' "$SCRATCH/$db.counts")
+      # app_db is the empty default database from the cluster bootstrap
+      if [[ "$db" != app_db ]] && (( tables == 0 )); then
+        fail "$db: restored database has no tables"
+      fi
+      log "$db OK: $tables tables, $rows rows"
+      total_tables=$((total_tables + tables))
+      total_rows=$((total_rows + rows))
+    done < "$latest/databases.txt"
+
+    psql -X -At -d postgres -c \
+      "SELECT datname FROM pg_database WHERE datallowconn AND NOT datistemplate AND datname <> 'postgres' ORDER BY 1" \
+      > "$SCRATCH/databases.txt"
+    diff -u "$latest/databases.txt" "$SCRATCH/databases.txt" || fail "restored database set differs from databases.txt"
+
+    log "PASS: $(basename "$latest"): $(wc -l < "$latest/databases.txt") databases, $total_tables tables, $total_rows rows"
