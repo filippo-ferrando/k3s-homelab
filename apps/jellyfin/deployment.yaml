@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jellyfin
-          image: ghcr.io/jpvenson/jellyfin.pgsql:10.11.11-1
+          image: ghcr.io/filippo-ferrando/jellyfin.pgsql:12.4-2
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
