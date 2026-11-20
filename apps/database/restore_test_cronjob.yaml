@@ -34,7 +34,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: restore-test
-              image: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie
+              image: ghcr.io/cloudnative-pg/postgresql:19.0-system-trixie
               command: ["/bin/bash", "/scripts/restore-test.sh"]
               env:
                 - name: MAX_AGE_DAYS
