@@ -86,6 +86,11 @@ spec:
               mountPath: /tmp
             - name: uploads
               mountPath: /hedgedoc/public/uploads
+            # Fix for hedgedoc/hedgedoc#6946 (403 on own notes), see permissions_patch.yaml
+            - name: permissions-patch
+              mountPath: /hedgedoc/lib/permissions.js
+              subPath: permissions.js
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -112,3 +117,6 @@ spec:
         - name: uploads
           persistentVolumeClaim:
             claimName: hedgedoc-uploads
+        - name: permissions-patch
+          configMap:
+            name: hedgedoc-permissions-patch
