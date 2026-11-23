@@ -33,7 +33,7 @@ spec:
           containers:
             - name: backup
               # Same image as the cluster: pg_dump must be at least the server's major version
-              image: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie
+              image: ghcr.io/cloudnative-pg/postgresql:19.0-system-trixie
               command: ["/bin/bash", "/scripts/backup.sh"]
               env:
                 # Backup directory names use local time, like the schedule
