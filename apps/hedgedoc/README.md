@@ -13,23 +13,36 @@
 | `namespace.yaml` | -3 | Namespace. |
 | `db_secret.yaml` | 0 | SealedSecret `hedgedoc-db-credentials` in `database`, used by the CNPG role. |
 | `deployment_secret.yaml` | 0 | The same credentials sealed for the `hedgedoc` namespace. |
-| `permissions_patch.yaml` | 0 | ConfigMap `hedgedoc-permissions-patch`: patched `lib/permissions.js`, see [Local patch](#local-patch-hedgedoc-6946). |
 | `pvc.yaml` | 0 | `hedgedoc-uploads` PVC (5Gi, default StorageClass) for uploaded images. |
 | `db.yaml` | 3, 4 | CNPG `DatabaseRole` + `Database` `hedgedoc`. |
-| `deployment.yaml` | 5 | HedgeDoc 1.12.2 (`Recreate`, non-root uid 10000, `fsGroup: 10000`, all capabilities dropped), configured via `CMD_*` env vars, `lib/permissions.js` replaced by the patch ConfigMap, with readiness and liveness probes on `/_health`. Read-only root filesystem, `/tmp` is an emptyDir. |
+| `deployment.yaml` | 5 | HedgeDoc 1.12.0 (`Recreate`, non-root uid 10000, `fsGroup: 10000`, all capabilities dropped), configured via `CMD_*` env vars, with readiness and liveness probes on `/_health`. Read-only root filesystem, `/tmp` is an emptyDir. |
 | `service.yaml` | 5 | ClusterIP on 3000. |
 | `ingressroute.yaml` | 5, 6 | `hedgedoc-headers` middleware (forces `X-Forwarded-Proto: https`, because TLS ends at Cloudflare and HedgeDoc would otherwise build `http://` URLs), the public IngressRoute and `public-ratelimit`. |
 | `networkpolicy.yaml` | - | Ingress from own namespace + Traefik. Egress to DNS, own namespace and CNPG on 5432 only. |
 
-## Local patch (hedgedoc#6946)
+## Version pin (1.12.0)
 
-HedgeDoc 1.12.2 moved the note view check into a shared `checkViewPermission()` (`lib/permissions.js`) that only understands the realtime request shape. On HTTP requests `req.user` has no `logged_in` field and the note owner is in `note.ownerId`, not `note.owner`. Every `GET /<note>` for a `private`, `limited` or `protected` note returns 403, the owner included. Upstream issue: [hedgedoc/hedgedoc#6946](https://github.com/hedgedoc/hedgedoc/issues/6946).
+Upstream removed the `1.12.1` and `1.12.2` tags from `quay.io/hedgedoc/hedgedoc`. `1.12.0` is the newest 1.12 tag available, so the deployment is pinned to it.
 
-`permissions_patch.yaml` ships a corrected `permissions.js`, mounted with `subPath` over `/hedgedoc/lib/permissions.js`:
+### hedgedoc#6946 does not apply
 
-- Logged-in state: `user.logged_in` when it is a boolean (realtime, anonymous sockets carry `{ logged_in: false }`), otherwise `req.isAuthenticated()` (HTTP).
-- Owner: `note.ownerId` (Sequelize note), otherwise `note.owner` (realtime UUID or included User).
+1.12.2 moved the note view check into a shared `checkViewPermission()` in `lib/permissions.js` that only understands the realtime request shape, so every HTTP `GET /<note>` for a `private`, `limited` or `protected` note returned 403 ([hedgedoc/hedgedoc#6946](https://github.com/hedgedoc/hedgedoc/issues/6946)). A ConfigMap mounted over that file worked around it.
 
-Rolling back to 1.12.0 was not chosen: it lacks the 1.12.1 security fixes, and the database already contains the 1.12.1/1.12.2 migrations (`add-profile-provider`, `user-email-unique`).
+1.12.0 has no `lib/permissions.js`. It keeps two separate checks, each correct for its caller:
 
-**On the next HedgeDoc bump:** check whether the release fixes #6946. If it does, delete `permissions_patch.yaml` and the `permissions-patch` volume and volumeMount in `deployment.yaml`. The `subPath` mount would otherwise keep overriding the upstream file.
+- HTTP, `lib/web/note/util.js`: `req.isAuthenticated()` and `note.ownerId`.
+- Realtime, `lib/realtime.js`: `req.user.logged_in` and `note.owner`.
+
+The patch ConfigMap and its volume were removed. If a later release reintroduces `lib/permissions.js`, check whether #6946 is fixed before upgrading.
+
+### Database schema
+
+The `hedgedoc` database was migrated by 1.12.2 and contains two migrations that 1.12.0 does not ship: `20260922038700-add-profile-provider` and `20261001120000-user-email-unique`. 1.12.0 runs against this schema:
+
+- Umzug only runs pending migrations. Extra rows in `SequelizeMeta` are ignored.
+- `Users.profileProvider` is nullable. 1.12.0 does not write it, so new rows get `NULL`.
+- The unique index on `(profileid, profileProvider)` cannot collide on `NULL` providers, and the unique index on `email` only matters for email registration, which is disabled.
+
+### Security
+
+1.12.0 lacks the fixes shipped in 1.12.1. Move back to a 1.12.x or later tag as soon as upstream publishes one.
