@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:2.1.6-beta
+          image: gtstef/filebrowser:2.2.0-beta
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
