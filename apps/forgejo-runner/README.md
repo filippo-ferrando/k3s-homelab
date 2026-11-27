@@ -38,6 +38,12 @@ The Forgejo jobs endpoint returns both waiting and running jobs. KEDA subtracts 
 
 DinD uses MTU 1400 (also for the per-job networks), below the flannel VXLAN MTU of 1450. With the default 1500, large TLS transfers from job containers stall.
 
+## Container registry
+
+Workflows log in to and push to the Forgejo registry at `git.internal.fferrando.cc`. Inside the cluster this hostname resolves to the ServiceLB node IPs (`192.168.10.100-103`). kube-proxy DNATs that traffic to a Traefik pod on `websecure` (8443) before the network policy is evaluated, so the egress rule targets the Traefik pods on 8443, not the node IPs. Without it, `docker login` fails with `dial tcp 192.168.10.101:443: connect: connection refused` (kube-router rejects the packet). The rule exposes every `*.internal` route on Traefik to CI jobs, but not the nodes, the NAS or other pods directly.
+
+kube-router applies the policy to a new pod about 20 seconds after it starts. Connectivity tests from a fresh pod must wait for that, or they pass against an unfiltered pod.
+
 ## Files
 
 | File | Wave | Description |
@@ -46,7 +52,7 @@ DinD uses MTU 1400 (also for the per-job networks), below the flannel VXLAN MTU 
 | `secrets.yaml` | 0 | SealedSecret `forgejo-runner-credentials`: `uuid` and `token` (runner identity) and `api-token` (Forgejo admin token for KEDA). Created by hand, see below. |
 | `config.yaml` | 0 | ConfigMap `forgejo-runner-config`: runner `config.yml` (capacity 1, label, cache, `docker_host` socket). The server connection is passed on the command line. |
 | `scaledjob.yaml` | 5 | `TriggerAuthentication` `forgejo-runner-creds` and `ScaledJob` `forgejo-runner` (trigger `forgejo-runner`, global scope, label `docker`). |
-| `networkpolicy.yaml` | - | No ingress. Egress to DNS, Forgejo on 3000 and the public internet (not the LAN, nodes, pods or tailnet). Also applies to the CI job containers. |
+| `networkpolicy.yaml` | - | No ingress. Egress to DNS, Forgejo on 3000, the Traefik pods on 8443 (registry) and the public internet (not the LAN, nodes, pods or tailnet). Also applies to the CI job containers. |
 
 **Prerequisites:** KEDA (`infrastructure/keda`), and the ingress entries for the `forgejo-runner` and `keda` namespaces in `apps/forgejo/networkpolicy.yaml`.
 

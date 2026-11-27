@@ -9,7 +9,7 @@ spec:
   policyTypes:
     - Ingress
 ---
-# Out: DNS, Forgejo (runner API, checkout), internet (images, actions from github.com, packages).
+# Out: DNS, Forgejo (runner API, checkout), Traefik 8443 (registry), internet (images, actions from github.com, packages).
 # CI job containers run inside the pod's DinD daemon, so this policy also applies to them.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -43,6 +43,19 @@ spec:
       ports:
         - protocol: TCP
           port: 3000
+    # Traefik websecure, for the registry at git.internal.fferrando.cc (docker login/pull/push).
+    # The hostname resolves to the ServiceLB node IPs; kube-proxy DNATs that to a Traefik pod
+    # on 8443 before the policy is evaluated, so the rule matches the pod, not the node IP.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8443
     # Internet only: not the LAN/NAS, nodes (kube API), pods, services or the tailnet
     - to:
         - ipBlock:
