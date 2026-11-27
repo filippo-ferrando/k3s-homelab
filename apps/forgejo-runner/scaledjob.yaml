@@ -56,8 +56,11 @@ spec:
             image: docker:29.10.1-dind
             restartPolicy: Always
             args:
+              # `dockerd` first: with a leading flag the image entrypoint adds its default
+              # --host=tcp://0.0.0.0:2375 (unauthenticated, and dockerd delays startup ~15s for it).
               # Unix socket only (no TCP, no TLS), shared with the runner through an emptyDir.
               # Group 1000 is the runner's gid.
+              - dockerd
               - --host=unix:///run/docker/docker.sock
               - --group=1000
               # Below the flannel VXLAN MTU (1450), also for the per-job networks the runner
