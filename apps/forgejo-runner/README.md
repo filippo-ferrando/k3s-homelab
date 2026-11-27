@@ -30,7 +30,7 @@ Check on a node while a CI job runs: `/sys/fs/cgroup/docker` must not gain child
 1. KEDA reads `/api/v1/admin/runners/jobs?labels=docker` every 15s with the `api-token`. For N pending jobs it creates up to N Jobs, minus the runner Jobs already active, capped at 4.
 2. `dind` starts as a native sidecar (init container with `restartPolicy: Always`). It listens only on `unix:///run/docker/docker.sock` in an emptyDir shared with the runner (group 1000, no TCP, no TLS). The runner starts after the sidecar's `docker info` startupProbe passes.
 3. `runner` runs `forgejo-runner one-job` against `http://forgejo.forgejo.svc.cluster.local:3000`. Job containers get the DinD socket at `/var/run/docker.sock`, so `docker build` works inside workflows.
-4. The runner exits after the job, and the kubelet then stops `dind`. Exit code 2 (no task, because the VM runner took the job first) is mapped to success. Finished Jobs are deleted after 1h; KEDA keeps the last 5 succeeded and 5 failed.
+4. The runner exits after the job, and the kubelet then stops `dind`. Exit code 2 (no task, because the VM runner took the job first) is mapped to success. KEDA deletes succeeded Jobs on its next poll and keeps the last 2 failed ones for `kubectl logs`; `ttlSecondsAfterFinished: 600` removes anything left after 10 minutes. CI job logs are in Forgejo.
 
 The ScaledJob uses `rollout.strategy: gradual`: a change to it (a push, a Renovate bump) leaves running Jobs alone. With the default `immediate`, KEDA deletes running Jobs and their CI jobs stay "running" in Forgejo until `ZOMBIE_TASK_TIMEOUT` (default 10m).
 

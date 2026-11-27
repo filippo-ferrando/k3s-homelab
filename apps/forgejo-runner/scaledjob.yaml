@@ -25,8 +25,10 @@ spec:
   pollingInterval: 15
   minReplicaCount: 0
   maxReplicaCount: 4
-  successfulJobsHistoryLimit: 5
-  failedJobsHistoryLimit: 5
+  # CI logs live in Forgejo: drop finished runner Jobs right away, keep the last 2 failures
+  # (runner/dind startup problems) for kubectl logs
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 2
   # Default (immediate) deletes running Jobs whenever this ScaledJob changes, which kills
   # the CI jobs in flight and leaves them "running" in Forgejo until its zombie timeout.
   # gradual: running Jobs finish, new Jobs use the new spec.
@@ -44,7 +46,8 @@ spec:
   jobTargetRef:
     backoffLimit: 0
     activeDeadlineSeconds: 10800
-    ttlSecondsAfterFinished: 3600
+    # Backstop for Jobs KEDA's history cleanup misses (it runs only on its next poll)
+    ttlSecondsAfterFinished: 600
     template:
       metadata:
         labels:
@@ -73,7 +76,8 @@ spec:
                 p=$(sed -n 's/^0:://p' /proc/self/cgroup); [ "$p" = / ] && p=
                 cg=/sys/fs/cgroup$p
                 mkdir -p "$cg/dockerd"
-                echo $$ > "$cg/dockerd/cgroup.procs"
+                # "0" = the writing process (this shell, PID 1). Not $$: Kubernetes turns $$ in args into $.
+                echo 0 > "$cg/dockerd/cgroup.procs"
                 echo "+cpu +memory +pids" > "$cg/cgroup.subtree_control"
                 # Unix socket only (no TCP, no TLS), shared with the runner through an emptyDir;
                 # group 1000 is the runner's gid. MTU below the flannel VXLAN MTU (1450), also for
