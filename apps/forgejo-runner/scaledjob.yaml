@@ -27,6 +27,11 @@ spec:
   maxReplicaCount: 4
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
+  # Default (immediate) deletes running Jobs whenever this ScaledJob changes, which kills
+  # the CI jobs in flight and leaves them "running" in Forgejo until its zombie timeout.
+  # gradual: running Jobs finish, new Jobs use the new spec.
+  rollout:
+    strategy: gradual
   triggers:
     - type: forgejo-runner
       metadata:

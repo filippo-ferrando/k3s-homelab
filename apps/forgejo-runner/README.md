@@ -28,6 +28,10 @@ Every CI job container is started by the pod's DinD daemon, so the `dind` contai
 3. `runner` runs `forgejo-runner one-job` against `http://forgejo.forgejo.svc.cluster.local:3000`. Job containers get the DinD socket at `/var/run/docker.sock`, so `docker build` works inside workflows.
 4. The runner exits after the job, and the kubelet then stops `dind`. Exit code 2 (no task, because the VM runner took the job first) is mapped to success. Finished Jobs are deleted after 1h; KEDA keeps the last 5 succeeded and 5 failed.
 
+The ScaledJob uses `rollout.strategy: gradual`: a change to it (a push, a Renovate bump) leaves running Jobs alone. With the default `immediate`, KEDA deletes running Jobs and their CI jobs stay "running" in Forgejo until `ZOMBIE_TASK_TIMEOUT` (default 10m).
+
+The Forgejo jobs endpoint returns both waiting and running jobs. KEDA subtracts its running Jobs, so a running CI job does not start an extra pod. A CI job whose runner pod died (orphaned task) does: KEDA starts pods every poll that exit with "no task received" until Forgejo fails the task or the run is cancelled.
+
 DinD uses MTU 1400 (also for the per-job networks), below the flannel VXLAN MTU of 1450. With the default 1500, large TLS transfers from job containers stall.
 
 ## Files
