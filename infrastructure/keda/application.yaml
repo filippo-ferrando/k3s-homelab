@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keda
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  sources:
+    - chart: keda
+      repoURL: https://kedacore.github.io/charts
+      targetRevision: 2.21.1
+      helm:
+        valueFiles:
+          - $values/infrastructure/keda/values.yaml
+    - repoURL: "https://github.com/filippo-ferrando/k3s-homelab.git"
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: keda
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The ScaledJob/ScaledObject CRDs exceed the client-side apply annotation limit
+      - ServerSideApply=true

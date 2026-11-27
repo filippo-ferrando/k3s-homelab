@@ -17,12 +17,13 @@ import sys
 import yaml
 
 ROOTS = ("apps", "infrastructure", "system")
-WORKLOADS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod"}
+WORKLOADS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "ScaledJob"}
 # Argo CD repository Secrets may be committed when they carry no credentials
 REPO_SECRET_SAFE_KEYS = {"name", "type", "url", "enableOCI", "project"}
 # kind/namespace/name -> reason
 ALLOW_PRIVILEGED = {
     "DaemonSet/kube-system/generic-device-plugin": "needs host /dev and the kubelet device-plugin socket",
+    "ScaledJob/forgejo-runner/forgejo-runner": "Docker-in-Docker sidecar that runs the Forgejo Actions job containers",
 }
 
 
@@ -45,6 +46,8 @@ def pod_spec(doc):
         return spec
     if doc["kind"] == "CronJob":
         spec = (spec.get("jobTemplate") or {}).get("spec") or {}
+    elif doc["kind"] == "ScaledJob":  # KEDA
+        spec = spec.get("jobTargetRef") or {}
     return (spec.get("template") or {}).get("spec") or {}
 
 

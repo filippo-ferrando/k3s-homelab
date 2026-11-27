@@ -1,0 +1,153 @@
+# KEDA polls Forgejo for pending jobs that match `labels` and starts one Job per pending
+# job, at most 4 at a time. Each Job runs `forgejo-runner one-job`: it takes one CI job,
+# runs it in the DinD sidecar and exits. No pods run while the queue is empty.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: forgejo-runner-creds
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  secretTargetRef:
+    - parameter: token
+      name: forgejo-runner-credentials
+      key: api-token
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: forgejo-runner
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  pollingInterval: 15
+  minReplicaCount: 0
+  maxReplicaCount: 4
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  triggers:
+    - type: forgejo-runner
+      metadata:
+        address: http://forgejo.forgejo.svc.cluster.local:3000
+        global: "true"
+        # Label names only, comma separated (the part before ':' in config.yaml)
+        labels: docker
+      authenticationRef:
+        name: forgejo-runner-creds
+  jobTargetRef:
+    backoffLimit: 0
+    activeDeadlineSeconds: 10800
+    ttlSecondsAfterFinished: 3600
+    template:
+      metadata:
+        labels:
+          app: forgejo-runner
+      spec:
+        restartPolicy: Never
+        automountServiceAccountToken: false
+        enableServiceLinks: false
+        initContainers:
+          # Native sidecar: starts first, gates the runner on its startupProbe and is
+          # stopped by the kubelet once the runner exits, so the Job completes.
+          # Every CI job container runs inside this daemon: its limits cap the CI job.
+          - name: dind
+            image: docker:29.10.1-dind
+            restartPolicy: Always
+            args:
+              # Unix socket only (no TCP, no TLS), shared with the runner through an emptyDir.
+              # Group 1000 is the runner's gid.
+              - --host=unix:///run/docker/docker.sock
+              - --group=1000
+              # Below the flannel VXLAN MTU (1450), also for the per-job networks the runner
+              # creates, or large TLS transfers from job containers stall
+              - --mtu=1400
+              - --default-network-opt=bridge=com.docker.network.driver.mtu=1400
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+            securityContext:
+              privileged: true
+            startupProbe:
+              exec:
+                command: ["docker", "--host=unix:///run/docker/docker.sock", "info"]
+              periodSeconds: 2
+              failureThreshold: 60
+            resources:
+              requests:
+                cpu: "1"
+                memory: 1Gi
+              limits:
+                cpu: "4"
+                memory: 4Gi
+            volumeMounts:
+              - name: docker-socket
+                mountPath: /run/docker
+              - name: docker-data
+                mountPath: /var/lib/docker
+        containers:
+          - name: runner
+            image: code.forgejo.org/forgejo/runner:13.2.2
+            command: ["/bin/sh", "-c"]
+            # Exit code 2 = no task: another runner (the VM) took the job first. Not a failure.
+            args:
+              - |
+                forgejo-runner --config /config/config.yml one-job \
+                  --url http://forgejo.forgejo.svc.cluster.local:3000 \
+                  --uuid "$RUNNER_UUID" \
+                  --token-url file:/secrets/token
+                rc=$?
+                [ "$rc" -eq 2 ] && echo "no task received, exiting" && exit 0
+                exit "$rc"
+            env:
+              - name: DOCKER_HOST
+                value: unix:///run/docker/docker.sock
+              - name: RUNNER_UUID
+                valueFrom:
+                  secretKeyRef:
+                    name: forgejo-runner-credentials
+                    key: uuid
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              capabilities:
+                drop: ["ALL"]
+              seccompProfile:
+                type: RuntimeDefault
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+            volumeMounts:
+              - name: config
+                mountPath: /config
+                readOnly: true
+              - name: credentials
+                mountPath: /secrets
+                readOnly: true
+              - name: runner-data
+                mountPath: /data
+              - name: docker-socket
+                mountPath: /run/docker
+        volumes:
+          - name: config
+            configMap:
+              name: forgejo-runner-config
+          - name: credentials
+            secret:
+              secretName: forgejo-runner-credentials
+              items:
+                - key: token
+                  path: token
+          - name: runner-data
+            emptyDir: {}
+          - name: docker-socket
+            emptyDir: {}
+          - name: docker-data
+            emptyDir:
+              sizeLimit: 20Gi

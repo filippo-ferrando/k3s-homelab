@@ -6,6 +6,24 @@ Newest first.
 
 ---
 
+## 2026-11-27: Forgejo Actions runners on the cluster (KEDA)
+
+**What**
+- New infrastructure component `infrastructure/keda`: KEDA 2.21.1 (Helm, namespace `keda`, wave -2), operator metrics with a ServiceMonitor.
+- New app `apps/forgejo-runner`: a KEDA `ScaledJob` with the `forgejo-runner` scaler. KEDA polls Forgejo for pending jobs with the `docker` label and starts one Job per pending job, at most 4 at a time. Each Job runs `forgejo-runner one-job` (runner 13.2.2) with a privileged Docker-in-Docker native sidecar limited to 4 CPU / 4Gi. No pods run while the queue is empty.
+- One shared runner identity (`k3s`), registered offline with a shared secret. Credentials and the KEDA admin token are in one SealedSecret.
+- The external VM runner stays registered with the same label; a job runs on whichever runner takes it first.
+- `apps/forgejo/networkpolicy.yaml` admits the `forgejo-runner` and `keda` namespaces.
+- `ci/check_manifests.py` now scans `ScaledJob` pod templates; the runner ScaledJob is allowlisted for `privileged`.
+- The Grafana overview dashboard gains a "Forgejo CI Runners" row: pending jobs, active runners, succeeded/failed Jobs, OOM kills, KEDA scaler errors, runner pods per node, CPU and memory per runner against the limits, and Job duration.
+
+**Why**
+- CI ran on one VM runner, one job at a time. The cluster has idle capacity, and parallel jobs shorten pipelines.
+- KEDA with ephemeral Jobs uses no resources while idle and gives every CI job a clean Docker daemon. A static pool of 4 runners would hold 4 DinD daemons around permanently.
+- `forgejo-runner` has no Kubernetes backend, so DinD (and a `privileged` namespace) is required in any setup.
+
+---
+
 ## 2026-11-16: Weekly CNPG backups with an automated restore test
 
 **What**

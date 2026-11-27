@@ -1,0 +1,31 @@
+# forgejo-runner configuration (format of runner 13, see `forgejo-runner generate-config`).
+# The server connection (url, uuid, token) is passed on the command line in scaledjob.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: forgejo-runner-config
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  config.yml: |
+    log:
+      level: info
+      job_level: info
+    runner:
+      # Not used: the connection comes from the command line
+      file: /data/.runner
+      # One job per pod, KEDA starts one pod per pending job
+      capacity: 1
+      timeout: 3h
+      fetch_timeout: 30s
+      # Same labels as the VM runner, so a job runs on whichever runner takes it first
+      labels:
+        - docker:docker://data.forgejo.org/oci/node:22-bookworm
+    cache:
+      enabled: true
+    container:
+      # Job containers get the DinD socket at /var/run/docker.sock (docker build, compose, ...)
+      docker_host: unix:///run/docker/docker.sock
+      privileged: false
+      valid_volumes: []

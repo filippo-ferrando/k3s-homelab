@@ -15,6 +15,14 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: traefik
+        # Runner API, checkout and artifacts from the CI runner pods
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: forgejo-runner
+        # KEDA polls /api/v1/admin/runners/jobs for pending CI jobs
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
 ---
 # Out: DNS, own namespace, the CNPG cluster, internet (SMTP (Resend), Actions from github.com, mirrors).
 apiVersion: networking.k8s.io/v1

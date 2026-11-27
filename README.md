@@ -17,6 +17,7 @@ Every folder under `apps/` and `infrastructure/` has its own `README.md` describ
 | **Secrets** | Bitnami Sealed Secrets |
 | **Security** | NetworkPolicies (ingress + egress) on every namespace, Pod Security Admission, Falco runtime detection |
 | **Observability** | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) + Pushgateway + lastgasp (node kernel logs and journal) |
+| **CI** | Forgejo Actions runners autoscaled by KEDA (one Job per pending CI job, max 4) + an external VM runner |
 | **Maintenance** | Kured (reboot orchestration) + descheduler + Ansible patch playbooks + Renovate |
 | **Backups** | Borg on the host, metrics pushed to Prometheus via Pushgateway; weekly `pg_dump` of every CNPG database to NFS with an automated restore test (`apps/database`) |
 | **Provisioning** | Ansible (OS prep, k3s bootstrap, NFS, backup jobs) |
@@ -113,7 +114,7 @@ Deployment order is controlled through `argocd.argoproj.io/sync-wave` annotation
 | `-5` | Argo CD itself (`argocd` Application) |
 | `-4` | Sealed Secrets, Longhorn |
 | `-3` | cert-manager, CloudNativePG operator, Traefik, every `Namespace` |
-| `-2` | Kured, generic-device-plugin |
+| `-2` | Kured, generic-device-plugin, KEDA |
 | `-1` | `root-infrastructure`, kube-prometheus-stack, descheduler, `longhorn-single-replica` StorageClass, core sealed secrets (Cloudflare token, tunnel token, Longhorn auth) |
 | `0` | cloudflared, app PVCs/PVs, app sealed DB credentials |
 | `1` | `root-apps`, cert-manager `ClusterIssuer`, Pushgateway, Falco |
@@ -140,6 +141,7 @@ k3s-homelab/
 │   ├── traefik/
 │   ├── cloudflared/
 │   ├── kured/
+│   ├── keda/                     # autoscaler for the Forgejo Actions runners
 │   ├── descheduler/
 │   ├── kube-prometheus-stack/    # also Grafana dashboards and the public status page
 │   ├── pushgateway/
@@ -151,6 +153,7 @@ k3s-homelab/
 │   ├── anvil/                    # anvil project website
 │   ├── database/                 # Shared CloudNativePG Postgres cluster
 │   ├── forgejo/
+│   ├── forgejo-runner/           # Forgejo Actions runners (KEDA ScaledJob + DinD)
 │   ├── jellyfin/
 │   ├── vaultwarden/
 │   ├── librephoto/
@@ -191,6 +194,7 @@ App folders share a convention: `namespace.yaml`, `deployment.yaml`, `service.ya
 | **Traefik** | Ingress controller (DaemonSet), dashboard, metrics | `traefik.github.io/charts` | `traefik` |
 | **cloudflared** | Cloudflare Tunnel client: exposes public services without opening inbound ports | raw manifest | `cloudflared` |
 | **Kured** | Coordinated node reboots after OS patching | `kubereboot.github.io/charts` | `kube-system` |
+| **KEDA** | Event-driven autoscaler: starts a Forgejo Actions runner Job per pending CI job | `kedacore.github.io/charts` | `keda` |
 | **descheduler** | Rebalances pods (duplicates, anti-affinity, utilization) via CronJob | `kubernetes-sigs.github.io/descheduler` | `kube-system` |
 | **kube-prometheus-stack** | Prometheus, Grafana, Alertmanager, node-exporter | `prometheus-community` | `monitoring` |
 | **Pushgateway** | Accepts metrics pushed from host jobs (Borg backups), persisted on a Longhorn volume | `prometheus-community` | `monitoring` |
@@ -316,6 +320,7 @@ flowchart TB
 | App | Description | Image | Access | Storage |
 |---|---|---|---|---|
 | **Forgejo** | Git forge, container registry and OCI Helm registry | `codeberg.org/forgejo/forgejo` | `git.internal.fferrando.cc` · `git.fferrando.cc` · SSH `:2222` | NFS (`/mnt/vault/git`) + CNPG |
+| **forgejo-runner** | Forgejo Actions runners: KEDA starts one Job per pending CI job (max 4, 4 CPU / 4Gi each), Docker-in-Docker sidecar | `code.forgejo.org/forgejo/runner` + `docker:dind` | none (polls Forgejo) | ephemeral (emptyDir) |
 | **Jellyfin** | Media server | `ghcr.io/jpvenson/jellyfin.pgsql` (Postgres-backed) | `jellyfin.internal.fferrando.cc` · `jellyfin.fferrando.cc` | Longhorn config (7Gi) + NFS media (read-only) + CNPG |
 | **Vaultwarden** | Bitwarden-compatible password manager | `vaultwarden/server` (alpine) | `vault.internal.fferrando.cc` (internal only) | Longhorn (3Gi) + CNPG |
 | **LibrePhotos** | Photo library (backend/frontend/proxy/Redis) | `reallibrephotos/librephotos*` | `photo.internal.fferrando.cc` · `photo.fferrando.cc` | Longhorn protected media (10Gi) + NFS library + CNPG |
@@ -352,8 +357,8 @@ flowchart LR
 ## Monitoring & observability
 
 - **kube-prometheus-stack** provides Prometheus, Grafana and Alertmanager, all persisted on `longhorn-single-replica` volumes. Prometheus retention is bounded (3 days / 3GiB), and heavy apiserver/etcd histogram metrics are dropped.
-- Prometheus selects every `ServiceMonitor`/`PodMonitor` in every namespace. Wired up: Traefik, Longhorn, CloudNativePG, cert-manager, Kured, Pushgateway, Falco, lastgasp and kubecraft.
-- **Grafana dashboards** live in Git as ConfigMaps loaded by the Grafana sidecar (homelab overview, kubecraft, and anonymized public copies). UI edits are not persisted.
+- Prometheus selects every `ServiceMonitor`/`PodMonitor` in every namespace. Wired up: Traefik, Longhorn, CloudNativePG, cert-manager, Kured, KEDA, Pushgateway, Falco, lastgasp and kubecraft.
+- **Grafana dashboards** live in Git as ConfigMaps loaded by the Grafana sidecar (homelab overview with a Forgejo CI runners row, kubecraft, and anonymized public copies). UI edits are not persisted.
 - **lastgasp** keeps every node's kernel log and journal (`warning` and above) in Postgres, so the messages before a crash or hang survive the reboot.
 - **Falco** watches syscalls on every node. Custom rules whitelist known-good behaviour (CNPG WAL archiving, controllers talking to the k8s API, Forgejo sshd).
 - Grafana is at `stats.internal.fferrando.cc`. The default admin password must be changed at first login.

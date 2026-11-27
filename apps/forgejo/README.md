@@ -1,6 +1,6 @@
 # forgejo
 
-[Forgejo](https://forgejo.org) Git forge. Besides hosting repositories, it serves as the container registry for the `portfolio` and `anvil/website` images and as the OCI Helm registry for the `kubecraft` and `lastgasp` charts.
+[Forgejo](https://forgejo.org) Git forge. Besides hosting repositories, it serves as the container registry for the `portfolio` and `anvil/website` images and as the OCI Helm registry for the `kubecraft` and `lastgasp` charts. Forgejo Actions jobs run on the autoscaled cluster runners in [`apps/forgejo-runner`](../forgejo-runner) and on an external VM runner.
 
 - **Namespace:** `forgejo` (PSS enforce `baseline`, warn `restricted`)
 - **URLs:** `https://git.internal.fferrando.cc` (LAN), `https://git.fferrando.cc` (Cloudflare tunnel, rate-limited), SSH on Traefik port `2222`
@@ -20,6 +20,6 @@
 | `deployment.yaml` | 5 | Forgejo 16, configured entirely through `FORGEJO__*` env vars: Postgres, Resend SMTP mailer (`git@fferrando.cc`), Actions default URL `https://github.com`. |
 | `service.yaml` | 5 | ClusterIP: `3000` (http) and `22` (ssh). |
 | `ingressroute.yaml` | 6 | Internal route, public route with `public-ratelimit`, and an `IngressRouteTCP` on the Traefik `ssh` entrypoint for git over SSH. |
-| `networkpolicy.yaml` | - | Ingress from own namespace + Traefik. Egress to DNS, own namespace, CNPG on 5432 and the public internet (mirrors, Resend, Actions). |
+| `networkpolicy.yaml` | - | Ingress from own namespace, Traefik, `forgejo-runner` (runner API) and `keda` (pending-jobs API). Egress to DNS, own namespace, CNPG on 5432 and the public internet (mirrors, Resend, Actions). |
 
 **Prerequisites:** NFS export `/mnt/vault/git`, the `homelab-db` cluster, and a 5432 allow entry for `app: forgejo` in `apps/database/networkpolicy.yaml`.
