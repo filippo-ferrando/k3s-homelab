@@ -360,7 +360,7 @@ flowchart LR
 - Prometheus selects every `ServiceMonitor`/`PodMonitor` in every namespace. Wired up: Traefik, Longhorn, CloudNativePG, cert-manager, Kured, KEDA, Pushgateway, Falco, lastgasp and kubecraft.
 - **Grafana dashboards** live in Git as ConfigMaps loaded by the Grafana sidecar (homelab overview with a Forgejo CI runners row, kubecraft, and anonymized public copies). UI edits are not persisted.
 - **lastgasp** keeps every node's kernel log and journal (`warning` and above) in Postgres, so the messages before a crash or hang survive the reboot.
-- **Falco** watches syscalls on every node. Custom rules whitelist known-good behaviour (CNPG WAL archiving, controllers talking to the k8s API, Forgejo sshd).
+- **Falco** watches syscalls on every node. Custom rules whitelist known-good behaviour (CNPG WAL archiving, controllers talking to the k8s API, Forgejo sshd, Forgejo Actions CI containers in DinD).
 - Grafana is at `stats.internal.fferrando.cc`. The default admin password must be changed at first login.
 
 ---

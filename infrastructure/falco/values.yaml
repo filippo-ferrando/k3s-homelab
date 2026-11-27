@@ -78,6 +78,10 @@ customRules:
         or (k8s.ns.name=database
             and container.image.repository=ghcr.io/cloudnative-pg/postgresql
             and proc.exepath=/controller/manager)
+        or (k8s.ns.name=keda
+            and ((container.image.repository=ghcr.io/kedacore/keda and proc.exepath=/keda)
+                 or (container.image.repository=ghcr.io/kedacore/keda-admission-webhooks and proc.exepath=/keda-admission-webhooks)
+                 or (container.image.repository=ghcr.io/kedacore/keda-metrics-apiserver and proc.exepath=/keda-adapter)))
         or (k8s.ns.name=longhorn-system
             and container.image.repository=docker.io/longhornio/longhorn-manager
             and proc.exepath=/usr/local/sbin/longhorn-manager)
@@ -122,3 +126,58 @@ customRules:
          and proc.exe_ino.mtime < val(container.start_ts))
       override:
         condition: replace
+
+  # Must sort after rules-forgejo-binary.yaml: rules.d is loaded in alphabetical order, and the
+  # append to known_drop_and_execute_activities below has to land on top of the replace there.
+  rules-forgejo-runner.yaml: |-
+    # CI job containers run inside the runner pod's DinD daemon, so Falco has no k8s or image
+    # metadata for them. They are identified by cgroup: dockerd runs with
+    # --cgroup-parent=<dind container cgroup>/ci (apps/forgejo-runner/scaledjob.yaml), so every
+    # CI container lives under .../kubepods.slice/.../cri-containerd-<id>.scope/ci/<docker id>.
+    - macro: forgejo_runner_ci_container
+      condition: >-
+        (container.id != host
+         and thread.cgroups contains "/kubepods.slice/"
+         and thread.cgroups contains ".scope/ci/")
+
+    # The DinD sidecar of a runner pod
+    - macro: forgejo_runner_dind
+      condition: >-
+        (k8s.ns.name=forgejo-runner
+         and container.name=dind
+         and container.image.repository=docker.io/library/docker
+         and proc.name=dockerd)
+
+    # CI jobs download toolchains (actions/setup-*), build and run test binaries and install
+    # packages: executing binaries that are not in the base image is what they do.
+    - macro: known_drop_and_execute_activities
+      condition: or (forgejo_runner_ci_container)
+      override:
+        condition: append
+
+    # systemd-sysusers reads the shadow files when apt-get installs a package that ships users
+    - macro: user_known_read_sensitive_files_activities
+      condition: >-
+        or (forgejo_runner_ci_container
+            and proc.exepath=/usr/bin/systemd-sysusers
+            and fd.name in (/etc/shadow, /etc/gshadow))
+      override:
+        condition: append
+
+    # dockerd extracting image layers that contain log files (e.g. /var/log/dpkg.log)
+    - macro: allowed_clear_log_files
+      condition: >-
+        or (forgejo_runner_dind
+            and proc.exepath=/usr/local/bin/dockerd
+            and fd.name startswith /var/lib/docker/)
+      override:
+        condition: append
+
+    # dockerd opens an AF_PACKET socket to send gratuitous ARP when it attaches a container to a
+    # bridge network. The exepath is docker-init when the event lands right after the fork.
+    - rule: Packet socket created in container
+      condition: >-
+        and not (forgejo_runner_dind
+                 and proc.exepath in (/usr/local/bin/dockerd, /usr/local/bin/docker-init))
+      override:
+        condition: append

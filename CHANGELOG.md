@@ -15,7 +15,9 @@ Newest first.
 - The ScaledJob uses `rollout.strategy: gradual`, so a change to it no longer deletes running Jobs (and their CI jobs).
 - The external VM runner stays registered with the same label; a job runs on whichever runner takes it first.
 - `apps/forgejo/networkpolicy.yaml` admits the `forgejo-runner` and `keda` namespaces.
+- The runner egress policy allows the Traefik pods on 8443, so CI jobs reach the registry at `git.internal.fferrando.cc` (it resolves to the ServiceLB node IPs, which the LAN exclusion blocked).
 - `ci/check_manifests.py` now scans `ScaledJob` pod templates; the runner ScaledJob is allowlisted for `privileged`.
+- Falco exceptions for the runners (`rules-forgejo-runner.yaml`): CI job containers inside DinD carry no k8s metadata, so they are matched by their cgroup path (`.scope/ci/<docker id>`) and exempted from "Drop and execute new binary" and from `systemd-sysusers` reading `/etc/shadow`. `dockerd` in the `dind` sidecar is exempted from "Clear Log Activities" (layer extraction under `/var/lib/docker`) and "Packet socket created in container". The KEDA operator, admission webhooks and metrics apiserver join the k8s API allowlist.
 - The Grafana overview dashboard gains a "Forgejo CI Runners" row: pending jobs, active runners, succeeded/failed Jobs, OOM kills, KEDA scaler errors, runner pods per node, CPU and memory per runner against the limits, and Job duration.
 
 **Why**

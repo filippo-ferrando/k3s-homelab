@@ -58,6 +58,8 @@ kube-router applies the policy to a new pod about 20 seconds after it starts. Co
 
 **Policy exceptions:** `ScaledJob/forgejo-runner/forgejo-runner` is in `ALLOW_PRIVILEGED` in `ci/check_manifests.py`.
 
+**Falco exceptions:** `rules-forgejo-runner.yaml` in `infrastructure/falco/values.yaml`. CI job containers have no k8s metadata in Falco and are matched by their cgroup path, which ends in `.scope/ci/<docker id>` because of the `--cgroup-parent` above. Changing the `ci` cgroup name in the `dind` command breaks the Falco exceptions; update the `forgejo_runner_ci_container` macro with it. See the [Falco README](../../infrastructure/falco/README.md#forgejo-runner-exceptions).
+
 ## One-time setup
 
 The runner is registered offline with a shared secret, so pods never call the registration API. Forgejo derives the runner UUID from the first 16 characters of the secret, and the token is the full secret.
