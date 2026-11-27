@@ -10,8 +10,9 @@ Newest first.
 
 **What**
 - New infrastructure component `infrastructure/keda`: KEDA 2.21.1 (Helm, namespace `keda`, wave -2), operator metrics with a ServiceMonitor.
-- New app `apps/forgejo-runner`: a KEDA `ScaledJob` with the `forgejo-runner` scaler. KEDA polls Forgejo for pending jobs with the `docker` label and starts one Job per pending job, at most 4 at a time. Each Job runs `forgejo-runner one-job` (runner 13.2.2) with a privileged Docker-in-Docker native sidecar limited to 4 CPU / 4Gi. No pods run while the queue is empty.
+- New app `apps/forgejo-runner`: a KEDA `ScaledJob` with the `forgejo-runner` scaler. KEDA polls Forgejo for pending jobs with the `docker` label and starts one Job per pending job, at most 4 at a time. Each Job runs `forgejo-runner one-job` (runner 13.2.2) with a privileged Docker-in-Docker native sidecar limited to 4 CPU / 4Gi. dockerd creates the CI containers under the sidecar's own cgroup (`--cgroup-parent`): privileged containers share the host cgroup namespace, and by default the CI containers landed in `/sys/fs/cgroup/docker` at the node root, unlimited (seen as an 8-core spike on balthazar). No pods run while the queue is empty.
 - One shared runner identity (`k3s`), registered offline with a shared secret. Credentials and the KEDA admin token are in one SealedSecret.
+- The ScaledJob uses `rollout.strategy: gradual`, so a change to it no longer deletes running Jobs (and their CI jobs).
 - The external VM runner stays registered with the same label; a job runs on whichever runner takes it first.
 - `apps/forgejo/networkpolicy.yaml` admits the `forgejo-runner` and `keda` namespaces.
 - `ci/check_manifests.py` now scans `ScaledJob` pod templates; the runner ScaledJob is allowlisted for `privileged`.

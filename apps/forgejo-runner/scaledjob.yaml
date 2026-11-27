@@ -60,21 +60,30 @@ spec:
           - name: dind
             image: docker:29.10.1-dind
             restartPolicy: Always
+            # Privileged containers share the host cgroup namespace on these nodes, so by default
+            # dockerd puts CI containers in /sys/fs/cgroup/docker at the node root, outside the pod
+            # and its CPU/memory limits. Instead: move dockerd into a leaf cgroup of this container
+            # and create the CI containers under <this container's cgroup>/ci, so the limits below
+            # cap them. Runs dockerd directly (not the image entrypoint, whose cgroup v2 setup moves
+            # processes at the host cgroup root into /init).
+            command: ["/bin/sh", "-c"]
             args:
-              # `dockerd` first: with a leading flag the image entrypoint adds its default
-              # --host=tcp://0.0.0.0:2375 (unauthenticated, and dockerd delays startup ~15s for it).
-              # Unix socket only (no TCP, no TLS), shared with the runner through an emptyDir.
-              # Group 1000 is the runner's gid.
-              - dockerd
-              - --host=unix:///run/docker/docker.sock
-              - --group=1000
-              # Below the flannel VXLAN MTU (1450), also for the per-job networks the runner
-              # creates, or large TLS transfers from job containers stall
-              - --mtu=1400
-              - --default-network-opt=bridge=com.docker.network.driver.mtu=1400
-            env:
-              - name: DOCKER_TLS_CERTDIR
-                value: ""
+              - |
+                set -e
+                p=$(sed -n 's/^0:://p' /proc/self/cgroup); [ "$p" = / ] && p=
+                cg=/sys/fs/cgroup$p
+                mkdir -p "$cg/dockerd"
+                echo $$ > "$cg/dockerd/cgroup.procs"
+                echo "+cpu +memory +pids" > "$cg/cgroup.subtree_control"
+                # Unix socket only (no TCP, no TLS), shared with the runner through an emptyDir;
+                # group 1000 is the runner's gid. MTU below the flannel VXLAN MTU (1450), also for
+                # the per-job networks the runner creates, or large TLS transfers stall.
+                exec docker-init -- dockerd \
+                  --cgroup-parent="$p/ci" \
+                  --host=unix:///run/docker/docker.sock \
+                  --group=1000 \
+                  --mtu=1400 \
+                  --default-network-opt=bridge=com.docker.network.driver.mtu=1400
             securityContext:
               privileged: true
             startupProbe:

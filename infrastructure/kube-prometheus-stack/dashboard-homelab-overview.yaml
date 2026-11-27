@@ -5213,7 +5213,7 @@ data:
                 "type": "prometheus",
                 "uid": "${DS_PROMETHEUS}"
               },
-              "expr": "count(max_over_time(kube_pod_container_status_last_terminated_reason{namespace=\"forgejo-runner\",reason=\"OOMKilled\"}[24h]) == 1) or vector(0)",
+              "expr": "sum(increase(container_oom_events_total{namespace=\"forgejo-runner\",container=\"dind\"}[24h])) or vector(0)",
               "legendFormat": "",
               "refId": "A"
             }

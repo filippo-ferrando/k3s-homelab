@@ -19,7 +19,11 @@ The external VM runner stays registered with the same label. A job runs on which
 | Docker storage per runner | 20Gi | `docker-data` emptyDir `sizeLimit` |
 | Job timeout | 3h | runner `timeout` and Job `activeDeadlineSeconds` |
 
-Every CI job container is started by the pod's DinD daemon, so the `dind` container limits cap the whole CI job. A job that exceeds 4Gi is OOM-killed. The runner container itself is limited to 256Mi.
+Every CI job container is started by the pod's DinD daemon, so the `dind` container limits cap the whole CI job. A process that pushes the job over 4Gi is OOM-killed inside the job (`dind` keeps running; the dashboard counts it from `container_oom_events_total`). The runner container itself is limited to 256Mi.
+
+This depends on the cgroup setup in the `dind` command. Privileged containers on these nodes share the host cgroup namespace, so a plain `dockerd` creates CI containers in `/sys/fs/cgroup/docker` at the node root, outside the pod and without any limit (this happened on the first runs). The `dind` command instead moves dockerd into `<container cgroup>/dockerd` and starts CI containers with `--cgroup-parent=<container cgroup>/ci`, so they are children of the pod's cgroup. It runs `dockerd` through `docker-init` directly, not through the image entrypoint, whose cgroup v2 setup moves processes at the host cgroup root into `/init`.
+
+Check on a node while a CI job runs: `/sys/fs/cgroup/docker` must not gain children, and `kubectl top pod -n forgejo-runner` must show the job's CPU on the `dind` container.
 
 ## How a pod runs
 
