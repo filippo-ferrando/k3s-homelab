@@ -22,8 +22,15 @@ data:
       # Same labels as the VM runner, so a job runs on whichever runner takes it first
       labels:
         - docker:docker://data.forgejo.org/oci/node:22-bookworm
+    # Runner pods: a local cache proxy forwards actions/cache to the shared server in
+    # cache-server.yaml. dir and port are read only by that server.
     cache:
       enabled: true
+      dir: /cache
+      port: 4001
+      external_server: http://forgejo-runner-cache.forgejo-runner.svc.cluster.local:4001/
+      # Shared runner token, mounted in both the runner and the cache-server pods
+      secret_url: file:/secrets/token
     container:
       # Job containers get the DinD socket at /var/run/docker.sock (docker build, compose, ...)
       docker_host: unix:///run/docker/docker.sock

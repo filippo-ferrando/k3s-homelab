@@ -232,7 +232,7 @@ flowchart LR
     Bulk -.->|mounts| Casper
 ```
 
-- **`longhorn-single-replica`** (custom `StorageClass`, `numberOfReplicas: 1`) is used where the workload has its own redundancy or the data is rebuildable: Postgres (CNPG replicates at the database level), Prometheus/Alertmanager/Grafana, kubecraft worlds, LibrePhotos protected media and Vibravid config. This avoids Longhorn's replication overhead on a small cluster.
+- **`longhorn-single-replica`** (custom `StorageClass`, `numberOfReplicas: 1`) is used where the workload has its own redundancy or the data is rebuildable: Postgres (CNPG replicates at the database level), Prometheus/Alertmanager/Grafana, kubecraft worlds, LibrePhotos protected media, Vibravid config and the Forgejo Actions cache. This avoids Longhorn's replication overhead on a small cluster.
 - **`longhorn`** (default, 3 replicas) backs smaller, higher-value single-instance app volumes (Vaultwarden data, Jellyfin config, Filebrowser config, RomM data).
 - **Static NFS PVs**, all served by `casper` (`192.168.10.101`) and mounted `ReadWriteMany` with NFSv4, back bulk storage: Jellyfin's library, Forgejo's git data, LibrePhotos' photo library, Filebrowser's shared folders, Vibravid's downloads and RomM's ROM library. Each NFS-backed app gets its own `PersistentVolume`/`PersistentVolumeClaim` pair pointing at a specific export (`/mnt/media`, `/mnt/vault/git`, `/mnt/vault/data`).
 - The Longhorn UI is protected by a Traefik `basicAuth` middleware backed by a sealed secret, and a `NetworkPolicy` lets only Prometheus scrape Longhorn manager metrics on `9500`.
@@ -320,7 +320,7 @@ flowchart TB
 | App | Description | Image | Access | Storage |
 |---|---|---|---|---|
 | **Forgejo** | Git forge, container registry and OCI Helm registry | `codeberg.org/forgejo/forgejo` | `git.internal.fferrando.cc` · `git.fferrando.cc` · SSH `:2222` | NFS (`/mnt/vault/git`) + CNPG |
-| **forgejo-runner** | Forgejo Actions runners: KEDA starts one Job per pending CI job (max 4, 4 CPU / 4Gi each), Docker-in-Docker sidecar | `code.forgejo.org/forgejo/runner` + `docker:dind` | none (polls Forgejo) | ephemeral (emptyDir) |
+| **forgejo-runner** | Forgejo Actions runners: KEDA starts one Job per pending CI job (max 4, 4 CPU / 4Gi each), Docker-in-Docker sidecar, shared `actions/cache` server | `code.forgejo.org/forgejo/runner` + `docker:dind` | none (polls Forgejo) | ephemeral (emptyDir) + Longhorn single-replica Actions cache |
 | **Jellyfin** | Media server | `ghcr.io/jpvenson/jellyfin.pgsql` (Postgres-backed) | `jellyfin.internal.fferrando.cc` · `jellyfin.fferrando.cc` | Longhorn config (7Gi) + NFS media (read-only) + CNPG |
 | **Vaultwarden** | Bitwarden-compatible password manager | `vaultwarden/server` (alpine) | `vault.internal.fferrando.cc` (internal only) | Longhorn (3Gi) + CNPG |
 | **LibrePhotos** | Photo library (backend/frontend/proxy/Redis) | `reallibrephotos/librephotos*` | `photo.internal.fferrando.cc` · `photo.fferrando.cc` | Longhorn protected media (10Gi) + NFS library + CNPG |

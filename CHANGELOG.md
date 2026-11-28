@@ -6,6 +6,19 @@ Newest first.
 
 ---
 
+## 2026-11-28: Shared Actions cache for the cluster runners
+
+**What**
+- New `apps/forgejo-runner/cache-server.yaml`: Deployment `forgejo-runner-cache` running `forgejo-runner cache-server` (runner 13.2.2) on a 20Gi `longhorn-single-replica` PVC, Service on 4001.
+- The runner config sets `cache.external_server` to that Service. Each runner pod's cache proxy forwards `actions/cache` requests to it, authenticated with the existing runner secret (`cache.secret_url: file:/secrets/token`).
+- Network policy: runner pods may reach the cache server on 4001; the cache server accepts only runner pods.
+- Retention is the cache server's built-in GC (newest entry per key, unused entries removed after 7 days).
+
+**Why**
+- Each one-job runner pod ran an internal cache server on its emptyDir, so caches were deleted at pod exit and `actions/cache@v4` never restored anything.
+
+---
+
 ## 2026-11-27: Forgejo Actions runners on the cluster (KEDA)
 
 **What**

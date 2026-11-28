@@ -1,0 +1,112 @@
+# Shared Actions cache (actions/cache) for the runner pods. Each runner pod runs a local cache
+# proxy that forwards to this server (cache.external_server in config.yaml), authenticated with
+# the runner token. Retention is the server's built-in GC: newest entry per key, entries unused
+# for 7 days are removed.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forgejo-runner-cache
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # Rebuildable data: a lost volume only costs cache misses
+  storageClassName: longhorn-single-replica
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forgejo-runner-cache
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  replicas: 1
+  # RWO volume: the old pod must release it before the new one starts
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: forgejo-runner-cache
+  template:
+    metadata:
+      labels:
+        app: forgejo-runner-cache
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: cache-server
+          image: code.forgejo.org/forgejo/runner:13.2.2
+          # dir, port and secret_url come from the cache section of config.yml
+          command: ["forgejo-runner", "--config", "/config/config.yml", "cache-server"]
+          ports:
+            - name: cache
+              containerPort: 4001
+          readinessProbe:
+            tcpSocket:
+              port: cache
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: cache
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: credentials
+              mountPath: /secrets
+              readOnly: true
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: config
+          configMap:
+            name: forgejo-runner-config
+        - name: credentials
+          secret:
+            secretName: forgejo-runner-credentials
+            items:
+              - key: token
+                path: token
+        - name: cache
+          persistentVolumeClaim:
+            claimName: forgejo-runner-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: forgejo-runner-cache
+  namespace: forgejo-runner
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  selector:
+    app: forgejo-runner-cache
+  ports:
+    - name: cache
+      port: 4001
+      targetPort: cache
